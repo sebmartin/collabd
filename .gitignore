@@ -5,6 +5,12 @@
 *.so
 *.dylib
 
+# VSCode
+.vscode
+
+# SQLite databases
+*.sqlite
+
 # Test binary, built with `go test -c`
 *.test
 
