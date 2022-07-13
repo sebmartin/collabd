@@ -11,7 +11,7 @@ import (
 // Lets redefine the base ID type to use an id from gorm's default uint type
 func MarshalID(id uint) graphql.Marshaler {
 	return graphql.WriterFunc(func(w io.Writer) {
-		io.WriteString(w, strconv.Quote(fmt.Sprintf("=%d=", id)))
+		io.WriteString(w, strconv.Quote(fmt.Sprintf("%d", id)))
 	})
 }
 
