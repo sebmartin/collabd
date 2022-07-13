@@ -9,6 +9,7 @@ import (
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/sebmartin/collabd/graph"
 	"github.com/sebmartin/collabd/graph/generated"
+	"github.com/sebmartin/collabd/models"
 )
 
 const defaultPort = "8080"
@@ -19,7 +20,14 @@ func main() {
 		port = defaultPort
 	}
 
-	srv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: &graph.Resolver{}}))
+	DB, err := models.Connect()
+	if err != nil {
+		log.Fatalf("Failed to connect to database: %s", err)
+	}
+
+	srv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{
+		Resolvers: &graph.Resolver{DB: DB},
+	}))
 
 	http.Handle("/", playground.Handler("GraphQL playground", "/query"))
 	http.Handle("/query", srv)

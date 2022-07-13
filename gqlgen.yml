@@ -13,9 +13,9 @@ exec:
 #   package: generated
 
 # Where should any generated models go?
-model:
-  filename: graph/model/models_gen.go
-  package: model
+# model:
+#   filename: graph/model/models_gen.go
+#   package: model
 
 # Where should the resolver implementations go?
 resolver:
@@ -42,7 +42,8 @@ resolver:
 # gqlgen will search for any type names in the schema in these go packages
 # if they match it will use them, otherwise it will generate them.
 autobind:
-#  - "github.com/sebmartin/collabd/graph/model"
+ - github.com/sebmartin/collabd/models
+
 
 # This section declares type mapping between the GraphQL and go type systems
 #
@@ -52,6 +53,7 @@ autobind:
 models:
   ID:
     model:
+      - github.com/sebmartin/collabd/models.ID
       - github.com/99designs/gqlgen/graphql.ID
       - github.com/99designs/gqlgen/graphql.Int
       - github.com/99designs/gqlgen/graphql.Int64
