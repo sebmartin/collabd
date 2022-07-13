@@ -13,7 +13,7 @@ const (
 )
 
 type Session struct {
-	gorm.Model
+	*gorm.Model
 
 	Code string
 }
