@@ -8,7 +8,7 @@ func TestNewParticipant(t *testing.T) {
 	db, cleanup := ConnectWithTestDB()
 	defer cleanup()
 
-	session := NewSession(db)
+	session, _ := NewSession(db)
 	pj, _ := NewParticipant(db, "Joe", session.Code)
 	pa, _ := NewParticipant(db, "Annie", session.Code)
 

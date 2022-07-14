@@ -13,9 +13,7 @@ import (
 
 // StartSession is the resolver for the startSession field.
 func (r *mutationResolver) StartSession(ctx context.Context) (*models.Session, error) {
-	// TODO handle DB errors in NewSession
-	s := models.NewSession(r.DB)
-	return s, nil
+	return models.NewSession(r.DB)
 }
 
 // JoinSession is the resolver for the joinSession field.

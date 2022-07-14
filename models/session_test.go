@@ -18,7 +18,7 @@ func TestNewSession(t *testing.T) {
 	defer cleanup()
 
 	expected := "NBDX"
-	session := newSessionWithSeed(db, predictableSeed())
+	session, _ := newSessionWithSeed(db, predictableSeed())
 	if session.Code != expected {
 		t.Errorf(`NewSession() created session with code "%s"; expected "%s"`, session.Code, expected)
 	}
@@ -37,8 +37,8 @@ func TestNewSession_CodeCollision(t *testing.T) {
 	db, cleanup := ConnectWithTestDB()
 	defer cleanup()
 
-	session1 := newSessionWithSeed(db, predictableSeed())
-	session2 := newSessionWithSeed(db, predictableSeed())
+	session1, _ := newSessionWithSeed(db, predictableSeed())
+	session2, _ := newSessionWithSeed(db, predictableSeed())
 
 	if session1.Code == session2.Code {
 		t.Errorf(`Both sessions were created with code collision "%s"`, session1.Code)
