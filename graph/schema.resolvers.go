@@ -5,22 +5,42 @@ package graph
 
 import (
 	"context"
-	"fmt"
+	"log"
 
 	"github.com/sebmartin/collabd/graph/generated"
 	"github.com/sebmartin/collabd/models"
 )
 
+// StartSession is the resolver for the startSession field.
+func (r *mutationResolver) StartSession(ctx context.Context) (*models.Session, error) {
+	// TODO handle DB errors in NewSession
+	s := models.NewSession(r.DB)
+	return s, nil
+}
+
+// JoinSession is the resolver for the joinSession field.
+func (r *mutationResolver) JoinSession(ctx context.Context, name string, code string) (*models.Participant, error) {
+	return models.NewParticipant(r.DB, name, code)
+}
+
 // Sessions is the resolver for the sessions field.
 func (r *queryResolver) Sessions(ctx context.Context) ([]*models.Session, error) {
 	db := r.DB
 	sessions := []*models.Session{}
+	// TODO: this only returns 100, consider adopting the Relay protocol for paging
 	result := db.Limit(100).Find(&sessions)
-	fmt.Print(result)
+	if result.Error != nil {
+		log.Print("Failed to retrieve all sessions")
+		return nil, result.Error
+	}
 	return sessions, nil
 }
+
+// Mutation returns generated.MutationResolver implementation.
+func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
 
 // Query returns generated.QueryResolver implementation.
 func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 
+type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }

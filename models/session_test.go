@@ -22,6 +22,9 @@ func TestNewSession(t *testing.T) {
 	if session.Code != expected {
 		t.Errorf(`NewSession() created session with code "%s"; expected "%s"`, session.Code, expected)
 	}
+	if session.ID == 0 {
+		t.Error(`NewSession() returned session does not have a primary key`)
+	}
 
 	var count int64
 	db.Model(&Session{}).Count(&count)

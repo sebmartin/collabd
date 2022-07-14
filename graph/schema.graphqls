@@ -7,15 +7,16 @@ type Session {
   code: String!
 }
 
+type Participant {
+  name: String!
+  session: Session!
+}
+
 type Query {
   sessions: [Session!]!
 }
 
-# input NewTodo {
-#   text: String!
-#   userId: String!
-# }
-
-# type Mutation {
-#   # createTodo(input: NewTodo!): Todo!
-# }
+type Mutation {
+  startSession: Session!
+  joinSession(name: String!, code: String!): Participant!
+}

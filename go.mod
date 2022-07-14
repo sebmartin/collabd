@@ -18,5 +18,3 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.12 // indirect
 	github.com/mitchellh/mapstructure v1.3.1 // indirect
 )
-
-replace github.com/sebmartin/collabd => ./
