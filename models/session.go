@@ -12,30 +12,69 @@ const (
 	SessionCodeMax    = 456976 // 26^4
 )
 
+// TODO: move this to its own place
+type GameKernel interface {
+	Run(chan Event)
+}
+
 type Session struct {
 	gorm.Model
 
 	Code         string
 	Participants []Participant
+
+	Kernel              GameKernel          `gorm:"-:all"`
+	ParticipantChannels map[uint]chan Event `gorm:"-:all"`
+	Events              chan Event          `gorm:"-:all"`
 }
 
-func NewSession(db *gorm.DB) (*Session, error) {
-	return newSessionWithSeed(db, time.Now().UnixNano)
+// Initialize some dynamic properties on the model, especially useful with GORM hooks
+// for when a model is retrieved from the database
+// TODO: add a method for mutating these properties to avoid this function
+func initSession(s *Session) {
+	s.ParticipantChannels = make(map[uint]chan Event)
+	for _, p := range s.Participants {
+		s.ParticipantChannels[p.ID] = make(chan Event)
+	}
+	s.Events = make(chan Event)
 }
 
-// improve error handling, return an error tuple
-func newSessionWithSeed(db *gorm.DB, seed func() int64) (*Session, error) {
+func NewSession(db *gorm.DB, kernel GameKernel) (*Session, error) {
+	return newSessionWithSeed(db, kernel, time.Now().UnixNano)
+}
+
+func newSessionWithSeed(db *gorm.DB, kernel GameKernel, seed func() int64) (*Session, error) {
+	var savedSession *Session
 	for {
-		rand.Seed(seed())
+		rand.Seed(seed()) // TODO Use crypto.rand instead!
+		savedSession = &Session{}
 		session := Session{Code: alphaSessionCode(rand.Intn(SessionCodeMax))}
-		savedSession := &Session{}
 		result := db.FirstOrCreate(savedSession, &session)
 		if result.Error != nil {
 			return nil, result.Error
 		} else if result.RowsAffected == 1 {
-			return savedSession, nil
+			break
 		}
 	}
+
+	savedSession.Kernel = kernel
+	go savedSession.Kernel.Run(savedSession.Events)
+
+	return savedSession, nil
+}
+
+func (s *Session) AddParticipant(db *gorm.DB, p *Participant) (chan Event, error) {
+	s.Participants = append(s.Participants, *p)
+	if result := db.Save(s); result.Error != nil {
+		return nil, result.Error
+	}
+
+	c := make(chan Event, 100)
+	s.Events <- &JoinEvent{
+		Participant: p,
+		Channel:     c,
+	}
+	return c, nil
 }
 
 func alphaSessionCode(code int) string {
@@ -46,4 +85,14 @@ func alphaSessionCode(code int) string {
 		code /= 26
 	}
 	return encoded
+}
+
+func (s *Session) AfterCreate(tx *gorm.DB) error {
+	initSession(s)
+	return nil
+}
+
+func (s *Session) AfterFind(tx *gorm.DB) error {
+	initSession(s)
+	return nil
 }

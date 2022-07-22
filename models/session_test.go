@@ -3,6 +3,8 @@ package models
 import (
 	"math"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func predictableSeed() func() int64 {
@@ -13,12 +15,18 @@ func predictableSeed() func() int64 {
 	}
 }
 
+type textEvent string
+
+func (e textEvent) Type() EventType {
+	return "TEXT"
+}
+
 func TestNewSession(t *testing.T) {
 	db, cleanup := ConnectWithTestDB()
 	defer cleanup()
 
 	expected := "NBDX"
-	session, _ := newSessionWithSeed(db, predictableSeed())
+	session, _ := newSessionWithSeed(db, &LambdaKernel{}, predictableSeed())
 	if session.Code != expected {
 		t.Errorf(`NewSession() created session with code "%s"; expected "%s"`, session.Code, expected)
 	}
@@ -37,8 +45,8 @@ func TestNewSession_CodeCollision(t *testing.T) {
 	db, cleanup := ConnectWithTestDB()
 	defer cleanup()
 
-	session1, _ := newSessionWithSeed(db, predictableSeed())
-	session2, _ := newSessionWithSeed(db, predictableSeed())
+	session1, _ := newSessionWithSeed(db, &LambdaKernel{}, predictableSeed())
+	session2, _ := newSessionWithSeed(db, &LambdaKernel{}, predictableSeed())
 
 	if session1.Code == session2.Code {
 		t.Errorf(`Both sessions were created with code collision "%s"`, session1.Code)
@@ -71,4 +79,19 @@ func Test_alphaSessionCode(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestSessionChannels(t *testing.T) {
+	db, cleanup := ConnectWithTestDB()
+	defer cleanup()
+
+	kernel := &LambdaKernel{}
+	event := textEvent("Test event")
+	session, _ := newSessionWithSeed(db, kernel, predictableSeed())
+	session.Events <- event
+
+	assert.Len(t, kernel.Events, 1, "Expected exactly one event")
+
+	receivedEvent := kernel.Events[0]
+	assert.Equal(t, receivedEvent, event)
 }

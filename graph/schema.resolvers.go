@@ -11,14 +11,22 @@ import (
 	"github.com/sebmartin/collabd/models"
 )
 
+type TodoError string
+
+func (e TodoError) Error() string {
+	return string(e)
+}
+
 // StartSession is the resolver for the startSession field.
 func (r *mutationResolver) StartSession(ctx context.Context) (*models.Session, error) {
-	return models.NewSession(r.DB)
+	// return models.NewSession(r.DB)
+	return nil, TodoError("we need to bind a session to a game kernel")
 }
 
 // JoinSession is the resolver for the joinSession field.
 func (r *mutationResolver) JoinSession(ctx context.Context, name string, code string) (*models.Participant, error) {
-	return models.NewParticipant(r.DB, name, code)
+	// return models.NewParticipant(r.DB, name, code)
+	return nil, TodoError("obtain session from the repo (in memory session)")
 }
 
 // Sessions is the resolver for the sessions field.
