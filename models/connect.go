@@ -41,7 +41,7 @@ func ConnectWithDB(dialector gorm.Dialector) (*gorm.DB, error) {
 	}
 
 	db.AutoMigrate(
-		&Participant{},
+		&Player{},
 		&Session{},
 	)
 

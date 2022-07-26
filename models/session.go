@@ -20,21 +20,21 @@ type GameKernel interface {
 type Session struct {
 	gorm.Model
 
-	Code         string
-	Participants []Participant
+	Code    string
+	Players []Player
 
-	Kernel              GameKernel          `gorm:"-:all"`
-	ParticipantChannels map[uint]chan Event `gorm:"-:all"`
-	Events              chan Event          `gorm:"-:all"`
+	Kernel         GameKernel          `gorm:"-:all"`
+	PlayerChannels map[uint]chan Event `gorm:"-:all"`
+	Events         chan Event          `gorm:"-:all"`
 }
 
 // Initialize some dynamic properties on the model, especially useful with GORM hooks
 // for when a model is retrieved from the database
 // TODO: add a method for mutating these properties to avoid this function
 func initSession(s *Session) {
-	s.ParticipantChannels = make(map[uint]chan Event)
-	for _, p := range s.Participants {
-		s.ParticipantChannels[p.ID] = make(chan Event)
+	s.PlayerChannels = make(map[uint]chan Event)
+	for _, p := range s.Players {
+		s.PlayerChannels[p.ID] = make(chan Event)
 	}
 	s.Events = make(chan Event)
 }
@@ -63,16 +63,16 @@ func newSessionWithSeed(db *gorm.DB, kernel GameKernel, seed func() int64) (*Ses
 	return savedSession, nil
 }
 
-func (s *Session) AddParticipant(db *gorm.DB, p *Participant) (chan Event, error) {
-	s.Participants = append(s.Participants, *p)
+func (s *Session) AddPlayer(db *gorm.DB, p *Player) (chan Event, error) {
+	s.Players = append(s.Players, *p)
 	if result := db.Save(s); result.Error != nil {
 		return nil, result.Error
 	}
 
 	c := make(chan Event, 100)
 	s.Events <- &JoinEvent{
-		Participant: p,
-		Channel:     c,
+		Player:  p,
+		Channel: c,
 	}
 	return c, nil
 }

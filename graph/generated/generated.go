@@ -49,7 +49,7 @@ type ComplexityRoot struct {
 		StartSession func(childComplexity int) int
 	}
 
-	Participant struct {
+	Player struct {
 		Name    func(childComplexity int) int
 		Session func(childComplexity int) int
 	}
@@ -66,7 +66,7 @@ type ComplexityRoot struct {
 
 type MutationResolver interface {
 	StartSession(ctx context.Context) (*models.Session, error)
-	JoinSession(ctx context.Context, name string, code string) (*models.Participant, error)
+	JoinSession(ctx context.Context, name string, code string) (*models.Player, error)
 }
 type QueryResolver interface {
 	Sessions(ctx context.Context) ([]*models.Session, error)
@@ -106,19 +106,19 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.StartSession(childComplexity), true
 
-	case "Participant.name":
-		if e.complexity.Participant.Name == nil {
+	case "Player.name":
+		if e.complexity.Player.Name == nil {
 			break
 		}
 
-		return e.complexity.Participant.Name(childComplexity), true
+		return e.complexity.Player.Name(childComplexity), true
 
-	case "Participant.session":
-		if e.complexity.Participant.Session == nil {
+	case "Player.session":
+		if e.complexity.Player.Session == nil {
 			break
 		}
 
-		return e.complexity.Participant.Session(childComplexity), true
+		return e.complexity.Player.Session(childComplexity), true
 
 	case "Query.sessions":
 		if e.complexity.Query.Sessions == nil {
@@ -217,7 +217,7 @@ type Session {
   code: String!
 }
 
-type Participant {
+type Player {
   name: String!
   session: Session!
 }
@@ -228,7 +228,7 @@ type Query {
 
 type Mutation {
   startSession: Session!
-  joinSession(name: String!, code: String!): Participant!
+  joinSession(name: String!, code: String!): Player!
 }
 `, BuiltIn: false},
 }
@@ -391,9 +391,9 @@ func (ec *executionContext) _Mutation_joinSession(ctx context.Context, field gra
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*models.Participant)
+	res := resTmp.(*models.Player)
 	fc.Result = res
-	return ec.marshalNParticipant2ᚖgithubᚗcomᚋsebmartinᚋcollabdᚋmodelsᚐParticipant(ctx, field.Selections, res)
+	return ec.marshalNPlayer2ᚖgithubᚗcomᚋsebmartinᚋcollabdᚋmodelsᚐPlayer(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Mutation_joinSession(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -405,11 +405,11 @@ func (ec *executionContext) fieldContext_Mutation_joinSession(ctx context.Contex
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "name":
-				return ec.fieldContext_Participant_name(ctx, field)
+				return ec.fieldContext_Player_name(ctx, field)
 			case "session":
-				return ec.fieldContext_Participant_session(ctx, field)
+				return ec.fieldContext_Player_session(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type Participant", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type Player", field.Name)
 		},
 	}
 	defer func() {
@@ -426,8 +426,8 @@ func (ec *executionContext) fieldContext_Mutation_joinSession(ctx context.Contex
 	return fc, nil
 }
 
-func (ec *executionContext) _Participant_name(ctx context.Context, field graphql.CollectedField, obj *models.Participant) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Participant_name(ctx, field)
+func (ec *executionContext) _Player_name(ctx context.Context, field graphql.CollectedField, obj *models.Player) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Player_name(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -457,9 +457,9 @@ func (ec *executionContext) _Participant_name(ctx context.Context, field graphql
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Participant_name(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Player_name(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
-		Object:     "Participant",
+		Object:     "Player",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -470,8 +470,8 @@ func (ec *executionContext) fieldContext_Participant_name(ctx context.Context, f
 	return fc, nil
 }
 
-func (ec *executionContext) _Participant_session(ctx context.Context, field graphql.CollectedField, obj *models.Participant) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Participant_session(ctx, field)
+func (ec *executionContext) _Player_session(ctx context.Context, field graphql.CollectedField, obj *models.Player) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Player_session(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -501,9 +501,9 @@ func (ec *executionContext) _Participant_session(ctx context.Context, field grap
 	return ec.marshalNSession2githubᚗcomᚋsebmartinᚋcollabdᚋmodelsᚐSession(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Participant_session(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Player_session(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
-		Object:     "Participant",
+		Object:     "Player",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -2616,26 +2616,26 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 	return out
 }
 
-var participantImplementors = []string{"Participant"}
+var playerImplementors = []string{"Player"}
 
-func (ec *executionContext) _Participant(ctx context.Context, sel ast.SelectionSet, obj *models.Participant) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, participantImplementors)
+func (ec *executionContext) _Player(ctx context.Context, sel ast.SelectionSet, obj *models.Player) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, playerImplementors)
 	out := graphql.NewFieldSet(fields)
 	var invalids uint32
 	for i, field := range fields {
 		switch field.Name {
 		case "__typename":
-			out.Values[i] = graphql.MarshalString("Participant")
+			out.Values[i] = graphql.MarshalString("Player")
 		case "name":
 
-			out.Values[i] = ec._Participant_name(ctx, field, obj)
+			out.Values[i] = ec._Player_name(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
 		case "session":
 
-			out.Values[i] = ec._Participant_session(ctx, field, obj)
+			out.Values[i] = ec._Player_session(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
 				invalids++
@@ -3099,18 +3099,18 @@ func (ec *executionContext) marshalNID2uint(ctx context.Context, sel ast.Selecti
 	return res
 }
 
-func (ec *executionContext) marshalNParticipant2githubᚗcomᚋsebmartinᚋcollabdᚋmodelsᚐParticipant(ctx context.Context, sel ast.SelectionSet, v models.Participant) graphql.Marshaler {
-	return ec._Participant(ctx, sel, &v)
+func (ec *executionContext) marshalNPlayer2githubᚗcomᚋsebmartinᚋcollabdᚋmodelsᚐPlayer(ctx context.Context, sel ast.SelectionSet, v models.Player) graphql.Marshaler {
+	return ec._Player(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNParticipant2ᚖgithubᚗcomᚋsebmartinᚋcollabdᚋmodelsᚐParticipant(ctx context.Context, sel ast.SelectionSet, v *models.Participant) graphql.Marshaler {
+func (ec *executionContext) marshalNPlayer2ᚖgithubᚗcomᚋsebmartinᚋcollabdᚋmodelsᚐPlayer(ctx context.Context, sel ast.SelectionSet, v *models.Player) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
 		}
 		return graphql.Null
 	}
-	return ec._Participant(ctx, sel, v)
+	return ec._Player(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNSession2githubᚗcomᚋsebmartinᚋcollabdᚋmodelsᚐSession(ctx context.Context, sel ast.SelectionSet, v models.Session) graphql.Marshaler {

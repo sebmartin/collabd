@@ -11,8 +11,8 @@ type Event interface {
 }
 
 type JoinEvent struct {
-	Participant *Participant
-	Channel     chan Event
+	Player  *Player
+	Channel chan Event
 }
 
 func (e *JoinEvent) Type() EventType {

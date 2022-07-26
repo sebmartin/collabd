@@ -1,4 +1,4 @@
-package repositories
+package services
 
 import (
 	"testing"
@@ -12,7 +12,7 @@ func TestSessionRepo_NewSession(t *testing.T) {
 	db, cleanup := models.ConnectWithTestDB()
 	defer cleanup()
 
-	repo := SessionRepo{DB: db}
+	repo := SessionService{DB: db}
 	kernel := &models.LambdaKernel{}
 	session, _ := repo.NewSession(kernel)
 
@@ -24,7 +24,7 @@ func TestSessionRepo_SessionForCode(t *testing.T) {
 	db, cleanup := models.ConnectWithTestDB()
 	defer cleanup()
 
-	repo := SessionRepo{DB: db}
+	repo := SessionService{DB: db}
 	session, _ := repo.NewSession(&models.LambdaKernel{})
 	returnedSession, err := repo.SessionForCode(session.Code)
 
@@ -37,25 +37,25 @@ func TestSessionRepo_SessionForCode_NotFound(t *testing.T) {
 	db, cleanup := models.ConnectWithTestDB()
 	defer cleanup()
 
-	repo := SessionRepo{DB: db}
+	repo := SessionService{DB: db}
 	session, err := repo.SessionForCode("XXXX")
 
 	assert.Error(t, err, `could not find session with code "XXXX"`)
 	assert.Nil(t, session)
 }
 
-func TestSessionRepo_AddParticipantToSession(t *testing.T) {
+func TestSessionRepo_JoinSession(t *testing.T) {
 	db, cleanup := models.ConnectWithTestDB()
 	defer cleanup()
 
-	repo := SessionRepo{DB: db}
+	repo := SessionService{DB: db}
 	kernel := &models.LambdaKernel{}
 	session, _ := repo.NewSession(kernel)
 
-	participant, _ := models.NewParticipant(db, "Steve", session)
-	repo.AddParticipantToSession(participant, session.Code)
+	player, _ := models.NewPlayer(db, "Steve", session)
+	repo.JoinSession(player, session.Code)
 
-	assert.Equal(t, participant.Session.Code, session.Code, "Session association was not assigned on the participant")
+	assert.Equal(t, player.Session.Code, session.Code, "Session association was not assigned on the player")
 
 	assert.Eventually(t, func() bool {
 		return len(kernel.Events) == 1
@@ -63,27 +63,27 @@ func TestSessionRepo_AddParticipantToSession(t *testing.T) {
 
 	event := kernel.Events[0].(*models.JoinEvent)
 	assert.Equal(t, event.Type(), models.JoinEventType, "The kernel should have received a Join event but didn't")
-	assert.Equalf(t, event.Participant.Name, participant.Name, "The kernel received a Join event for the wrong participant")
+	assert.Equalf(t, event.Player.Name, player.Name, "The kernel received a Join event for the wrong player")
 }
 
-func TestSessionRepo_AddParticipantToSession_ParticipantChannel(t *testing.T) {
+func TestSessionRepo_JoinSession_PlayerChannel(t *testing.T) {
 	db, cleanup := models.ConnectWithTestDB()
 	defer cleanup()
 
-	repo := SessionRepo{DB: db}
+	repo := SessionService{DB: db}
 	kernel := models.NewWelcomeKernel()
 	session, _ := repo.NewSession(kernel)
 
 	names := []string{"Steve", "Angela"}
-	participants := make([]*models.Participant, 0, len(names))
+	players := make([]*models.Player, 0, len(names))
 	for _, n := range names {
-		p, _ := models.NewParticipant(db, n, session)
-		repo.AddParticipantToSession(p, session.Code)
-		participants = append(participants, p)
+		p, _ := models.NewPlayer(db, n, session)
+		repo.JoinSession(p, session.Code)
+		players = append(players, p)
 	}
 
-	for _, p := range participants {
-		assert.Equal(t, session.Code, p.Session.Code, "Session association was not assigned on the participant")
+	for _, p := range players {
+		assert.Equal(t, session.Code, p.Session.Code, "Session association was not assigned on the player")
 	}
 
 	assert.Eventually(t, func() bool {
@@ -93,9 +93,9 @@ func TestSessionRepo_AddParticipantToSession_ParticipantChannel(t *testing.T) {
 	for i, event := range kernel.Events {
 		event := event.(*models.JoinEvent)
 		assert.Equal(t, models.JoinEventType, event.Type())
-		assert.Equalf(t, names[i], event.Participant.Name, "Expected a join event for participant named %s", names[i])
+		assert.Equalf(t, names[i], event.Player.Name, "Expected a join event for player named %s", names[i])
 
-		welcomeEvent := (<-session.ParticipantChannels[event.Participant.ID]).(*models.WelcomeEvent)
-		assert.Equalf(t, welcomeEvent.Name, names[i], "Expected a welcome event for participant named %s", names[i])
+		welcomeEvent := (<-session.PlayerChannels[event.Player.ID]).(*models.WelcomeEvent)
+		assert.Equalf(t, welcomeEvent.Name, names[i], "Expected a welcome event for player named %s", names[i])
 	}
 }

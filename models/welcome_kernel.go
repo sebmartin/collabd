@@ -12,7 +12,7 @@ func NewWelcomeKernel() *LambdaKernel {
 	return &LambdaKernel{
 		Handler: func(k *LambdaKernel, e Event) {
 			if e, ok := e.(*JoinEvent); ok {
-				k.ParticipantChannels[e.Participant.ID] <- &WelcomeEvent{Name: e.Participant.Name}
+				k.PlayerChannels[e.Player.ID] <- &WelcomeEvent{Name: e.Player.Name}
 			}
 		},
 	}

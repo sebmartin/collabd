@@ -4,7 +4,7 @@ import (
 	"gorm.io/gorm"
 )
 
-type Participant struct {
+type Player struct {
 	*gorm.Model
 
 	Name      string
@@ -12,8 +12,8 @@ type Participant struct {
 	Session   Session
 }
 
-func NewParticipant(db *gorm.DB, name string, session *Session) (*Participant, error) {
-	p := &Participant{
+func NewPlayer(db *gorm.DB, name string, session *Session) (*Player, error) {
+	p := &Player{
 		Name:    name,
 		Session: *session,
 	}
@@ -22,7 +22,7 @@ func NewParticipant(db *gorm.DB, name string, session *Session) (*Participant, e
 		return nil, result.Error
 	}
 
-	session.ParticipantChannels[p.ID] = make(chan Event)
+	session.PlayerChannels[p.ID] = make(chan Event)
 
 	return p, nil
 }

@@ -24,8 +24,8 @@ func (r *mutationResolver) StartSession(ctx context.Context) (*models.Session, e
 }
 
 // JoinSession is the resolver for the joinSession field.
-func (r *mutationResolver) JoinSession(ctx context.Context, name string, code string) (*models.Participant, error) {
-	// return models.NewParticipant(r.DB, name, code)
+func (r *mutationResolver) JoinSession(ctx context.Context, name string, code string) (*models.Player, error) {
+	// return models.NewPlayer(r.DB, name, code)
 	return nil, TodoError("obtain session from the repo (in memory session)")
 }
 

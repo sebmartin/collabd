@@ -7,7 +7,7 @@ type Session {
   code: String!
 }
 
-type Participant {
+type Player {
   name: String!
   session: Session!
 }
@@ -18,5 +18,5 @@ type Query {
 
 type Mutation {
   startSession: Session!
-  joinSession(name: String!, code: String!): Participant!
+  joinSession(name: String!, code: String!): Player!
 }
