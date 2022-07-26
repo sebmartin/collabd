@@ -21,12 +21,16 @@ func (e textEvent) Type() EventType {
 	return "TEXT"
 }
 
+func (e textEvent) Sender() *Player {
+	return nil
+}
+
 func TestNewSession(t *testing.T) {
 	db, cleanup := ConnectWithTestDB()
 	defer cleanup()
 
 	expected := "NBDX"
-	session, _ := newSessionWithSeed(db, &LambdaKernel{}, predictableSeed())
+	session, _ := newSessionWithSeed(db, &LambdaState{}, predictableSeed())
 	if session.Code != expected {
 		t.Errorf(`NewSession() created session with code "%s"; expected "%s"`, session.Code, expected)
 	}
@@ -45,8 +49,8 @@ func TestNewSession_CodeCollision(t *testing.T) {
 	db, cleanup := ConnectWithTestDB()
 	defer cleanup()
 
-	session1, _ := newSessionWithSeed(db, &LambdaKernel{}, predictableSeed())
-	session2, _ := newSessionWithSeed(db, &LambdaKernel{}, predictableSeed())
+	session1, _ := newSessionWithSeed(db, &LambdaState{}, predictableSeed())
+	session2, _ := newSessionWithSeed(db, &LambdaState{}, predictableSeed())
 
 	if session1.Code == session2.Code {
 		t.Errorf(`Both sessions were created with code collision "%s"`, session1.Code)
@@ -85,10 +89,10 @@ func TestSessionChannels(t *testing.T) {
 	db, cleanup := ConnectWithTestDB()
 	defer cleanup()
 
-	kernel := &LambdaKernel{}
+	kernel := &LambdaState{}
 	event := textEvent("Test event")
 	session, _ := newSessionWithSeed(db, kernel, predictableSeed())
-	session.Events <- event
+	session.PlayerEvents <- event
 
 	assert.Len(t, kernel.Events, 1, "Expected exactly one event")
 

@@ -13,8 +13,8 @@ const (
 )
 
 // TODO: move this to its own place
-type GameKernel interface {
-	Run(chan Event)
+type GameState interface {
+	Run(<-chan PlayerEvent)
 }
 
 type Session struct {
@@ -23,27 +23,27 @@ type Session struct {
 	Code    string
 	Players []Player
 
-	Kernel         GameKernel          `gorm:"-:all"`
-	PlayerChannels map[uint]chan Event `gorm:"-:all"`
-	Events         chan Event          `gorm:"-:all"`
+	CurrentState GameState                 `gorm:"-:all"`
+	ServerEvents map[uint]chan ServerEvent `gorm:"-:all"`
+	PlayerEvents chan PlayerEvent          `gorm:"-:all"`
 }
 
 // Initialize some dynamic properties on the model, especially useful with GORM hooks
 // for when a model is retrieved from the database
 // TODO: add a method for mutating these properties to avoid this function
 func initSession(s *Session) {
-	s.PlayerChannels = make(map[uint]chan Event)
+	s.ServerEvents = make(map[uint]chan ServerEvent)
 	for _, p := range s.Players {
-		s.PlayerChannels[p.ID] = make(chan Event)
+		s.ServerEvents[p.ID] = make(chan ServerEvent)
 	}
-	s.Events = make(chan Event)
+	s.PlayerEvents = make(chan PlayerEvent)
 }
 
-func NewSession(db *gorm.DB, kernel GameKernel) (*Session, error) {
+func NewSession(db *gorm.DB, kernel GameState) (*Session, error) {
 	return newSessionWithSeed(db, kernel, time.Now().UnixNano)
 }
 
-func newSessionWithSeed(db *gorm.DB, kernel GameKernel, seed func() int64) (*Session, error) {
+func newSessionWithSeed(db *gorm.DB, kernel GameState, seed func() int64) (*Session, error) {
 	var savedSession *Session
 	for {
 		rand.Seed(seed()) // TODO Use crypto.rand instead!
@@ -57,23 +57,20 @@ func newSessionWithSeed(db *gorm.DB, kernel GameKernel, seed func() int64) (*Ses
 		}
 	}
 
-	savedSession.Kernel = kernel
-	go savedSession.Kernel.Run(savedSession.Events)
+	savedSession.CurrentState = kernel
+	go savedSession.CurrentState.Run(savedSession.PlayerEvents)
 
 	return savedSession, nil
 }
 
-func (s *Session) AddPlayer(db *gorm.DB, p *Player) (chan Event, error) {
+func (s *Session) AddPlayer(db *gorm.DB, p *Player) (chan ServerEvent, error) {
 	s.Players = append(s.Players, *p)
 	if result := db.Save(s); result.Error != nil {
 		return nil, result.Error
 	}
 
-	c := make(chan Event, 100)
-	s.Events <- &JoinEvent{
-		Player:  p,
-		Channel: c,
-	}
+	c := make(chan ServerEvent, 100)
+	s.PlayerEvents <- NewJoinEvent(p, c)
 	return c, nil
 }
 

@@ -22,7 +22,7 @@ func NewPlayer(db *gorm.DB, name string, session *Session) (*Player, error) {
 		return nil, result.Error
 	}
 
-	session.PlayerChannels[p.ID] = make(chan Event)
+	session.ServerEvents[p.ID] = make(chan ServerEvent)
 
 	return p, nil
 }

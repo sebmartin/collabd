@@ -12,7 +12,7 @@ type SessionService struct {
 	LiveSessions []*models.Session
 }
 
-func (r *SessionService) NewSession(kernel models.GameKernel) (*models.Session, error) {
+func (r *SessionService) NewSession(kernel models.GameState) (*models.Session, error) {
 	session, err := models.NewSession(r.DB, kernel)
 	r.LiveSessions = append(r.LiveSessions, session)
 	return session, err
@@ -36,6 +36,6 @@ func (r *SessionService) JoinSession(p *models.Player, code string) (*models.Ses
 	if err != nil {
 		return nil, err
 	}
-	session.PlayerChannels[p.ID] = channel
+	session.ServerEvents[p.ID] = channel
 	return session, nil
 }

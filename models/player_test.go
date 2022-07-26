@@ -10,7 +10,7 @@ func TestNewPlayer_Associations(t *testing.T) {
 	db, cleanup := ConnectWithTestDB()
 	defer cleanup()
 
-	kernel := &LambdaKernel{}
+	kernel := &LambdaState{}
 	session, _ := NewSession(db, kernel)
 	pj, _ := NewPlayer(db, "Joe", session)
 	pa, _ := NewPlayer(db, "Annie", session)
@@ -32,16 +32,16 @@ func TestNewPlayer_Channels(t *testing.T) {
 	db, cleanup := ConnectWithTestDB()
 	defer cleanup()
 
-	kernel := &LambdaKernel{}
+	kernel := &LambdaState{}
 	session, _ := NewSession(db, kernel)
 	NewPlayer(db, "Joe", session)
 	NewPlayer(db, "Annie", session)
 	db.Preload("Players").Find(&session, session.ID)
 
 	assert.Len(t, session.Players, 2, "there should have been 2 players in the session")
-	assert.Equal(t, len(session.PlayerChannels), len(session.Players), "there should be one channel per player")
+	assert.Equal(t, len(session.ServerEvents), len(session.Players), "there should be one channel per player")
 	for _, p := range session.Players {
-		assert.Containsf(t, session.PlayerChannels, p.ID, "%s was not asigned a channel", p.Name)
-		assert.NotNilf(t, session.PlayerChannels[p.ID], "%s's channel is nil", p.Name)
+		assert.Containsf(t, session.ServerEvents, p.ID, "%s was not asigned a channel", p.Name)
+		assert.NotNilf(t, session.ServerEvents[p.ID], "%s's channel is nil", p.Name)
 	}
 }
