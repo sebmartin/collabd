@@ -1,4 +1,4 @@
-package services
+package game
 
 import (
 	"fmt"
@@ -10,11 +10,18 @@ import (
 type SessionService struct {
 	DB           *gorm.DB
 	LiveSessions []*models.Session
+	// GameRegistry []models.Game
 }
 
-func (r *SessionService) NewSession(kernel models.GameState) (*models.Session, error) {
-	session, err := models.NewSession(r.DB, kernel)
+// func (r *SessionService) RegisterGame(g models.Game) {
+// 	log.Printf("Registered game: %s", g.Name())
+// 	r.GameRegistry = append(r.GameRegistry, g)
+// }
+
+func (r *SessionService) NewSession(stage models.GameStage) (*models.Session, error) {
+	session, err := models.NewSession(r.DB, stage)
 	r.LiveSessions = append(r.LiveSessions, session)
+	// r.GameRegistry = make([]models.Game, 10)
 	return session, err
 }
 

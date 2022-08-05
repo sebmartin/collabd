@@ -1,5 +1,7 @@
 package models
 
+import "context"
+
 type EventType string
 
 const (
@@ -18,10 +20,12 @@ type PlayerEvent interface {
 	Event
 
 	Sender() *Player
+	Context() context.Context
 }
 
 type BasicPlayerEvent struct {
 	sender *Player
+	ctx    context.Context
 }
 
 func (e *BasicPlayerEvent) Type() EventType {
@@ -32,10 +36,15 @@ func (e *BasicPlayerEvent) Sender() *Player {
 	return e.sender
 }
 
-func NewJoinEvent(player *Player, playerChannel chan<- ServerEvent) *JoinEvent {
+func (e *BasicPlayerEvent) Context() context.Context {
+	return e.ctx
+}
+
+func NewJoinEvent(ctx context.Context, player *Player, playerChannel chan<- ServerEvent) *JoinEvent {
 	return &JoinEvent{
 		PlayerEvent: &BasicPlayerEvent{
 			sender: player,
+			ctx:    ctx,
 		},
 		Channel: playerChannel,
 	}

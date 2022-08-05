@@ -20,7 +20,7 @@ func (e TodoError) Error() string {
 // StartSession is the resolver for the startSession field.
 func (r *mutationResolver) StartSession(ctx context.Context) (*models.Session, error) {
 	// return models.NewSession(r.DB)
-	return nil, TodoError("we need to bind a session to a game kernel")
+	return nil, TodoError("we need to bind a session to a game stage")
 }
 
 // JoinSession is the resolver for the joinSession field.

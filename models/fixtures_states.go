@@ -1,31 +1,33 @@
 package models
 
-// A test state that simply runs a lambda handler when executed
-type LambdaState struct {
+// A test stage that simply runs a lambda handler when executed
+type LambdaStage struct {
 	Events         []Event
 	PlayerChannels map[uint]chan<- ServerEvent
-	Handler        func(*LambdaState, PlayerEvent)
+	Handler        func(*LambdaStage, PlayerEvent)
 }
 
-func (k *LambdaState) Run(c <-chan PlayerEvent) {
-	if k.PlayerChannels == nil {
-		k.PlayerChannels = make(map[uint]chan<- ServerEvent)
+func (stage *LambdaStage) Run(c <-chan PlayerEvent) GameStage {
+	if stage.PlayerChannels == nil {
+		stage.PlayerChannels = make(map[uint]chan<- ServerEvent)
 	}
 
 	for {
-		event := <-c
-		k.Events = append(k.Events, event)
+		event, ok := <-c
+		if !ok {
+			return nil
+		}
+		stage.Events = append(stage.Events, event)
 		if event.Type() == JoinEventType {
 			event := event.(*JoinEvent)
-			k.PlayerChannels[event.Sender().ID] = event.Channel
+			stage.PlayerChannels[event.Sender().ID] = event.Channel
 		}
-		if k.Handler != nil {
-			k.Handler(k, event)
+		if stage.Handler != nil {
+			stage.Handler(stage, event)
 		}
 	}
 }
 
-// A test state that sends a welcome event to players when they join
 type WelcomeEvent struct {
 	Name string
 }
@@ -34,9 +36,10 @@ func (e *WelcomeEvent) Type() EventType {
 	return EventType("WELCOME")
 }
 
-func NewWelcomeKernel() *LambdaState {
-	return &LambdaState{
-		Handler: func(k *LambdaState, e PlayerEvent) {
+// A test stage that sends a welcome event to players when they join
+func NewWelcomeStage() *LambdaStage {
+	return &LambdaStage{
+		Handler: func(k *LambdaStage, e PlayerEvent) {
 			if e, ok := e.(*JoinEvent); ok {
 				k.PlayerChannels[e.Sender().ID] <- &WelcomeEvent{Name: e.Sender().Name}
 			}

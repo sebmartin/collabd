@@ -10,8 +10,8 @@ func TestNewPlayer_Associations(t *testing.T) {
 	db, cleanup := ConnectWithTestDB()
 	defer cleanup()
 
-	kernel := &LambdaState{}
-	session, _ := NewSession(db, kernel)
+	stage := &LambdaStage{}
+	session, _ := NewSession(db, stage)
 	pj, _ := NewPlayer(db, "Joe", session)
 	pa, _ := NewPlayer(db, "Annie", session)
 
@@ -32,8 +32,8 @@ func TestNewPlayer_Channels(t *testing.T) {
 	db, cleanup := ConnectWithTestDB()
 	defer cleanup()
 
-	kernel := &LambdaState{}
-	session, _ := NewSession(db, kernel)
+	stage := &LambdaStage{}
+	session, _ := NewSession(db, stage)
 	NewPlayer(db, "Joe", session)
 	NewPlayer(db, "Annie", session)
 	db.Preload("Players").Find(&session, session.ID)

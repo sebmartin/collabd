@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"math/rand"
 	"time"
 
@@ -12,20 +13,25 @@ const (
 	SessionCodeMax    = 456976 // 26^4
 )
 
-// TODO: move this to its own place
-type GameState interface {
-	Run(<-chan PlayerEvent)
-}
-
 type Session struct {
 	gorm.Model
 
 	Code    string
 	Players []Player
 
-	CurrentState GameState                 `gorm:"-:all"`
+	CurrentStage GameStage                 `gorm:"-:all"`
 	ServerEvents map[uint]chan ServerEvent `gorm:"-:all"`
 	PlayerEvents chan PlayerEvent          `gorm:"-:all"`
+}
+
+func (s *Session) AfterCreate(tx *gorm.DB) error {
+	initSession(s)
+	return nil
+}
+
+func (s *Session) AfterFind(tx *gorm.DB) error {
+	initSession(s)
+	return nil
 }
 
 // Initialize some dynamic properties on the model, especially useful with GORM hooks
@@ -39,11 +45,11 @@ func initSession(s *Session) {
 	s.PlayerEvents = make(chan PlayerEvent)
 }
 
-func NewSession(db *gorm.DB, kernel GameState) (*Session, error) {
-	return newSessionWithSeed(db, kernel, time.Now().UnixNano)
+func NewSession(db *gorm.DB, initialStage GameStage) (*Session, error) {
+	return newSessionWithSeed(db, initialStage, time.Now().UnixNano)
 }
 
-func newSessionWithSeed(db *gorm.DB, kernel GameState, seed func() int64) (*Session, error) {
+func newSessionWithSeed(db *gorm.DB, initialStage GameStage, seed func() int64) (*Session, error) {
 	var savedSession *Session
 	for {
 		rand.Seed(seed()) // TODO Use crypto.rand instead!
@@ -57,8 +63,9 @@ func newSessionWithSeed(db *gorm.DB, kernel GameState, seed func() int64) (*Sess
 		}
 	}
 
-	savedSession.CurrentState = kernel
-	go savedSession.CurrentState.Run(savedSession.PlayerEvents)
+	// Start the session in a go routine
+	savedSession.CurrentStage = initialStage
+	go savedSession.CurrentStage.Run(savedSession.PlayerEvents)
 
 	return savedSession, nil
 }
@@ -70,7 +77,8 @@ func (s *Session) AddPlayer(db *gorm.DB, p *Player) (chan ServerEvent, error) {
 	}
 
 	c := make(chan ServerEvent, 100)
-	s.PlayerEvents <- NewJoinEvent(p, c)
+	var ctx context.Context // TODO get this
+	s.PlayerEvents <- NewJoinEvent(ctx, p, c)
 	return c, nil
 }
 
@@ -82,14 +90,4 @@ func alphaSessionCode(code int) string {
 		code /= 26
 	}
 	return encoded
-}
-
-func (s *Session) AfterCreate(tx *gorm.DB) error {
-	initSession(s)
-	return nil
-}
-
-func (s *Session) AfterFind(tx *gorm.DB) error {
-	initSession(s)
-	return nil
 }
