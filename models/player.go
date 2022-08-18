@@ -9,20 +9,23 @@ type Player struct {
 
 	Name      string
 	SessionID int
-	Session   Session
+	// Session      Session // TODO is this relationship backwards? Can players join more than one game?
+	ServerEvents chan ServerEvent `gorm:"-:all"`
 }
 
-func NewPlayer(db *gorm.DB, name string, session *Session) (*Player, error) {
+func NewPlayer(db *gorm.DB, name string) (*Player, error) {
 	p := &Player{
-		Name:    name,
-		Session: *session,
+		Name: name,
+		// Session:      *session,
+		ServerEvents: make(chan ServerEvent),
 	}
-	result := db.Create(&p)
+	result := db.Create(p)
 	if result.Error != nil {
 		return nil, result.Error
 	}
 
-	session.ServerEvents[p.ID] = make(chan ServerEvent)
+	// TODO: this should get done on server.JoinSession()
+	// session.ServerEvents[p.ID] = make(chan ServerEvent)
 
 	return p, nil
 }

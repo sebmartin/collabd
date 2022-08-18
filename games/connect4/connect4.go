@@ -1,13 +1,17 @@
 package connect4
 
 import (
+	"context"
 	"fmt"
 
+	"github.com/sebmartin/collabd/game"
 	"github.com/sebmartin/collabd/models"
 )
 
 func init() {
-
+	game.Register("Connect4", func(ctx context.Context) (models.GameInitializer, error) {
+		return NewGame(), nil
+	})
 }
 
 const (
@@ -23,16 +27,12 @@ type Connect4 struct {
 
 func NewGame() Connect4 {
 	return Connect4{
+		Game: *models.NewGame(
+			"Connect 4",
+			nil, // TODO: set initialStage
+		),
 		Board: [6][7]Piece{},
 	}
-}
-
-func (g *Connect4) Name() string {
-	return "Connect 4"
-}
-
-func (g *Connect4) InitialStage() *models.GameStage {
-	return nil
 }
 
 func (g *Connect4) DropPiece(p Piece, slot uint) (int, error) {

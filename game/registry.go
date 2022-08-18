@@ -2,39 +2,39 @@ package game
 
 import (
 	"context"
+	"fmt"
 	"sync"
 
 	"github.com/sebmartin/collabd/models"
 )
 
 var (
-	gamesMu sync.RWMutex
-	games   = make(map[string]Game)
+	gameRegistryMu sync.RWMutex
+	gameRegistry   = make(map[string]func(context.Context) (models.GameInitializer, error))
 )
 
 // Registers a game making it available from the server. If called twice with the
 // same game name, or game is nil, it panics.
-func Register(name string, game *Game) {
-	gamesMu.Lock()
-	defer gamesMu.Unlock()
+func Register(name string, game func(ctx context.Context) (models.GameInitializer, error)) {
+	gameRegistryMu.Lock()
+	defer gameRegistryMu.Unlock()
 
 	if game == nil {
 		panic("Game Registry: attempted to register nil game for name " + name)
 	}
-	if _, other := games[name]; other {
+	if _, other := gameRegistry[name]; other {
 		panic("Game Registry: a game is already registered with the name " + name)
 	}
-	games[name] = game
+	gameRegistry[name] = game
 }
 
-func NewSession(ctx context.Context, name string) (*models.Session, error) {
-	panic("// TODO implement")
-}
+func NewGame(name string, ctx context.Context) (models.GameInitializer, error) {
+	gameRegistryMu.RLock()
+	defer gameRegistryMu.RUnlock()
 
-func SessionForCode(ctx context.Context, code string) (*models.Session, error) {
-	panic("// TODO implement")
-}
-
-func JoinSession(ctx context.Context, player *models.Player, code string) (*models.Session, error) {
-	panic("// TODO implement")
+	gameInit, found := gameRegistry[name]
+	if !found {
+		return nil, fmt.Errorf("failed to create session, unknown game: %s", name)
+	}
+	return gameInit(ctx)
 }

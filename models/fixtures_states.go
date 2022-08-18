@@ -7,7 +7,7 @@ type LambdaStage struct {
 	Handler        func(*LambdaStage, PlayerEvent)
 }
 
-func (stage *LambdaStage) Run(c <-chan PlayerEvent) GameStage {
+func (stage *LambdaStage) Run(c <-chan PlayerEvent) StageRunner {
 	if stage.PlayerChannels == nil {
 		stage.PlayerChannels = make(map[uint]chan<- ServerEvent)
 	}

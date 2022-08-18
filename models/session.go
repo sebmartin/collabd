@@ -11,15 +11,16 @@ import (
 const (
 	SessionCodeLength = 4
 	SessionCodeMax    = 456976 // 26^4
+	ChanBufferSize    = 100
 )
 
 type Session struct {
 	gorm.Model
 
 	Code    string
-	Players []Player
+	Players []*Player
 
-	CurrentStage GameStage                 `gorm:"-:all"`
+	CurrentStage StageRunner               `gorm:"-:all"`
 	ServerEvents map[uint]chan ServerEvent `gorm:"-:all"`
 	PlayerEvents chan PlayerEvent          `gorm:"-:all"`
 }
@@ -40,16 +41,16 @@ func (s *Session) AfterFind(tx *gorm.DB) error {
 func initSession(s *Session) {
 	s.ServerEvents = make(map[uint]chan ServerEvent)
 	for _, p := range s.Players {
-		s.ServerEvents[p.ID] = make(chan ServerEvent)
+		s.ServerEvents[p.ID] = make(chan ServerEvent, ChanBufferSize)
 	}
-	s.PlayerEvents = make(chan PlayerEvent)
+	s.PlayerEvents = make(chan PlayerEvent, ChanBufferSize)
 }
 
-func NewSession(db *gorm.DB, initialStage GameStage) (*Session, error) {
-	return newSessionWithSeed(db, initialStage, time.Now().UnixNano)
+func NewSession(db *gorm.DB, initializer GameInitializer) (*Session, error) {
+	return newSessionWithSeed(db, initializer, time.Now().UnixNano)
 }
 
-func newSessionWithSeed(db *gorm.DB, initialStage GameStage, seed func() int64) (*Session, error) {
+func newSessionWithSeed(db *gorm.DB, initializer GameInitializer, seed func() int64) (*Session, error) {
 	var savedSession *Session
 	for {
 		rand.Seed(seed()) // TODO Use crypto.rand instead!
@@ -64,14 +65,14 @@ func newSessionWithSeed(db *gorm.DB, initialStage GameStage, seed func() int64) 
 	}
 
 	// Start the session in a go routine
-	savedSession.CurrentStage = initialStage
+	savedSession.CurrentStage = initializer.InitialStage()
 	go savedSession.CurrentStage.Run(savedSession.PlayerEvents)
 
 	return savedSession, nil
 }
 
 func (s *Session) AddPlayer(db *gorm.DB, p *Player) (chan ServerEvent, error) {
-	s.Players = append(s.Players, *p)
+	s.Players = append(s.Players, p)
 	if result := db.Save(s); result.Error != nil {
 		return nil, result.Error
 	}
