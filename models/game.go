@@ -20,7 +20,6 @@ func (g Game) InitialStage() StageRunner {
 	return g.initialStage
 }
 
-// TODO this is exploration
 type GameInitializer interface {
 	Name() string
 	InitialStage() StageRunner

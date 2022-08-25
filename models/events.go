@@ -20,7 +20,14 @@ type PlayerEvent interface {
 	Event
 
 	Sender() *Player
-	Context() context.Context
+	Context() context.Context // TODO: remove this once it is sent to the channel separately
+}
+
+type PlayerEventEnvelope struct {
+	PlayerEvent
+
+	Session Session
+	Context context.Context
 }
 
 type BasicPlayerEvent struct {
@@ -40,6 +47,8 @@ func (e *BasicPlayerEvent) Context() context.Context {
 	return e.ctx
 }
 
+// Join Event
+
 func NewJoinEvent(ctx context.Context, player *Player, playerChannel chan<- ServerEvent) *JoinEvent {
 	return &JoinEvent{
 		PlayerEvent: &BasicPlayerEvent{
@@ -50,6 +59,7 @@ func NewJoinEvent(ctx context.Context, player *Player, playerChannel chan<- Serv
 	}
 }
 
+// Player event that the server receives when a player requests to join an active session
 type JoinEvent struct {
 	PlayerEvent
 

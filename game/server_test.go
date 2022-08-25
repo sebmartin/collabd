@@ -96,6 +96,47 @@ func TestServer_JoinSession(t *testing.T) {
 	assert.Equal(t, joinedSession.Players[0], player)
 }
 
+func TestServer_JoinSession_ServerEventsChannel(t *testing.T) {
+	// TODO: this is testing code in session so it might make more sense to test it in that context
+	server, session, cleanup := newServerSession(t)
+	defer cleanup()
+
+	player, _ := models.NewPlayer(server.db, "Steve")
+	joinedSession, _ := server.JoinSession(context.Background(), player, session.Code)
+
+	assert.Contains(t, joinedSession.ServerEvents, player.ID, "No player event channel found in session for player")
+
+	event := &models.WelcomeEvent{
+		Name: player.Name,
+	}
+
+	// Send dummy event
+	select {
+	case joinedSession.ServerEvents[player.ID] <- event:
+		break
+	default:
+		assert.FailNow(t, "Player's server events channel is unbuffered (blocked)")
+	}
+
+	// Receive the event
+	select {
+	case rcvEvent := <-player.ServerEvents:
+		assert.Equal(t, event, rcvEvent)
+	default:
+		assert.FailNow(t, "Server event was not received")
+	}
+}
+
+func TestServer_JoinSession_PlayerEventsChannels(t *testing.T) {
+	// server, session, cleanup := newServerSession(t)
+	// defer cleanup()
+
+	// player, _ := models.NewPlayer(server.db, "Steve")
+	// joinedSession, _ := server.JoinSession(context.Background(), player, session.Code)
+
+	// 	TODO make sure player channels work
+}
+
 func TestServer_JoinSession_UnknownCode(t *testing.T) {
 	server, cleanup := newServer(t)
 	defer cleanup()
@@ -113,8 +154,32 @@ type TestGame struct {
 }
 
 type TestStage struct {
+	recvPlayerEvents []models.PlayerEvent // Not thread safe, ok for now
 }
 
-func (s *TestStage) Run(<-chan models.PlayerEvent) models.StageRunner {
-	return nil
+func (s *TestStage) Run(playerEvents <-chan models.PlayerEventEnvelope) models.StageRunner {
+	if s.recvPlayerEvents == nil {
+		s.recvPlayerEvents = make([]models.PlayerEvent, 10)
+	}
+
+	for {
+		event, ok := <-playerEvents
+		if !ok {
+			return nil
+		}
+		s.recvPlayerEvents = append(s.recvPlayerEvents, event.PlayerEvent)
+
+		if event.Type() == models.EventType("ECHO") {
+			event.Session.SendServerEvent(event.Sender().ID, event.PlayerEvent)
+		}
+	}
+}
+
+type EchoEvent struct {
+	Name    string
+	Message string
+}
+
+func (e *EchoEvent) Type() models.EventType {
+	return models.EventType("ECHO")
 }

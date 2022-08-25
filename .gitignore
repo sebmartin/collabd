@@ -5,6 +5,9 @@
 *.so
 *.dylib
 
+# MacOS
+.DS_Store
+
 # VSCode
 .vscode
 __debug_bin

@@ -3,6 +3,7 @@ package models
 import (
 	"context"
 	"math/rand"
+	"sync"
 	"time"
 
 	"gorm.io/gorm"
@@ -14,15 +15,21 @@ const (
 	ChanBufferSize    = 100
 )
 
+type contextKey string
+
+const SessionKey = contextKey("session")
+
 type Session struct {
 	gorm.Model
 
-	Code    string
-	Players []*Player
+	Code      string
+	Players   []*Player    `gorm:"-:all"`
+	PlayersMu sync.RWMutex `gorm:"-:all"` // TODO: this sucks, if the game routine modifies this as part of a stage then we don't have to worry about synchronization
 
-	CurrentStage StageRunner               `gorm:"-:all"`
-	ServerEvents map[uint]chan ServerEvent `gorm:"-:all"`
-	PlayerEvents chan PlayerEvent          `gorm:"-:all"`
+	CurrentStage   StageRunner               `gorm:"-:all"`
+	ServerEvents   map[uint]chan ServerEvent `gorm:"-:all"`
+	ServerEventsMu sync.RWMutex              `gorm:"-:all"`
+	PlayerEvents   chan PlayerEventEnvelope  `gorm:"-:all"`
 }
 
 func (s *Session) AfterCreate(tx *gorm.DB) error {
@@ -43,7 +50,8 @@ func initSession(s *Session) {
 	for _, p := range s.Players {
 		s.ServerEvents[p.ID] = make(chan ServerEvent, ChanBufferSize)
 	}
-	s.PlayerEvents = make(chan PlayerEvent, ChanBufferSize)
+
+	s.PlayerEvents = make(chan PlayerEventEnvelope, ChanBufferSize)
 }
 
 func NewSession(db *gorm.DB, initializer GameInitializer) (*Session, error) {
@@ -71,16 +79,35 @@ func newSessionWithSeed(db *gorm.DB, initializer GameInitializer, seed func() in
 	return savedSession, nil
 }
 
-func (s *Session) AddPlayer(db *gorm.DB, p *Player) (chan ServerEvent, error) {
+// TODO get DB from context
+func (s *Session) AddPlayer(ctx context.Context, db *gorm.DB, p *Player) error {
 	s.Players = append(s.Players, p)
 	if result := db.Save(s); result.Error != nil {
-		return nil, result.Error
+		return result.Error
 	}
 
-	c := make(chan ServerEvent, 100)
-	var ctx context.Context // TODO get this
-	s.PlayerEvents <- NewJoinEvent(ctx, p, c)
-	return c, nil
+	s.ServerEvents[p.ID] = p.ServerEvents
+	s.HandlePlayerEvent(ctx, NewJoinEvent(ctx, p, p.ServerEvents))
+	// s.PlayerEvents <- NewJoinEvent(ctx, p, p.ServerEvents)
+	return nil
+}
+
+func (s *Session) HandlePlayerEvent(ctx context.Context, event PlayerEvent) {
+	s.PlayerEvents <- PlayerEventEnvelope{
+		PlayerEvent: event,
+		Session:     *s,
+		Context:     context.WithValue(ctx, SessionKey, s),
+	}
+}
+
+func (s *Session) SendServerEvent(playerID uint, event ServerEvent) {
+	panic("// TODO")
+}
+
+func (s *Session) BoardcastServerEvent(event ServerEvent) {
+	for _, p := range s.Players {
+		s.SendServerEvent(p.ID, event)
+	}
 }
 
 func alphaSessionCode(code int) string {

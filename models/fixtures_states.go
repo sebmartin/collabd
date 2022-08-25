@@ -4,10 +4,10 @@ package models
 type LambdaStage struct {
 	Events         []Event
 	PlayerChannels map[uint]chan<- ServerEvent
-	Handler        func(*LambdaStage, PlayerEvent)
+	Handler        func(*LambdaStage, PlayerEventEnvelope)
 }
 
-func (stage *LambdaStage) Run(c <-chan PlayerEvent) StageRunner {
+func (stage *LambdaStage) Run(c <-chan PlayerEventEnvelope) StageRunner {
 	if stage.PlayerChannels == nil {
 		stage.PlayerChannels = make(map[uint]chan<- ServerEvent)
 	}
@@ -17,9 +17,9 @@ func (stage *LambdaStage) Run(c <-chan PlayerEvent) StageRunner {
 		if !ok {
 			return nil
 		}
-		stage.Events = append(stage.Events, event)
+		stage.Events = append(stage.Events, event.PlayerEvent)
 		if event.Type() == JoinEventType {
-			event := event.(*JoinEvent)
+			event := event.PlayerEvent.(*JoinEvent)
 			stage.PlayerChannels[event.Sender().ID] = event.Channel
 		}
 		if stage.Handler != nil {
@@ -39,8 +39,8 @@ func (e *WelcomeEvent) Type() EventType {
 // A test stage that sends a welcome event to players when they join
 func NewWelcomeStage() *LambdaStage {
 	return &LambdaStage{
-		Handler: func(k *LambdaStage, e PlayerEvent) {
-			if e, ok := e.(*JoinEvent); ok {
+		Handler: func(k *LambdaStage, e PlayerEventEnvelope) {
+			if e, ok := e.PlayerEvent.(*JoinEvent); ok {
 				k.PlayerChannels[e.Sender().ID] <- &WelcomeEvent{Name: e.Sender().Name}
 			}
 		},

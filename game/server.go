@@ -89,6 +89,8 @@ func (s *Server) SessionForCode(code string) (*models.Session, error) {
 	return nil, fmt.Errorf(`could not find session with code "%s"`, code)
 }
 
+// TODO: consider making this a Game Stage to simplify and dogfood the API
+//  - this would require making players and channels part of the game and not the session
 func (s *Server) JoinSession(ctx context.Context, player *models.Player, code string) (*models.Session, error) {
 	s.sessionsMu.RLock()
 	defer s.sessionsMu.RUnlock()
@@ -97,10 +99,15 @@ func (s *Server) JoinSession(ctx context.Context, player *models.Player, code st
 	if err != nil {
 		return nil, err
 	}
-	channel, err := session.AddPlayer(s.db, player)
+
+	err = session.AddPlayer(ctx, s.db, player)
 	if err != nil {
 		return nil, err
 	}
-	session.ServerEvents[player.ID] = channel
+
 	return session, nil
+}
+
+func (s *Server) HandlePlayerEvent(ctx context.Context, sessionCode string, event models.PlayerEvent) {
+	// player event already has a context within
 }

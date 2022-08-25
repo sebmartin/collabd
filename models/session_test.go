@@ -4,6 +4,7 @@ import (
 	"context"
 	"math"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -13,6 +14,12 @@ func predictableSeed() func() int64 {
 	return func() int64 {
 		last_seed += 1
 		return last_seed
+	}
+}
+
+func newGameInitializer() *LambdaGame {
+	return &LambdaGame{
+		Game: NewGame("TestGame", &LambdaStage{}),
 	}
 }
 
@@ -35,7 +42,7 @@ func TestNewSession(t *testing.T) {
 	defer cleanup()
 
 	expected := "NBDX"
-	session, _ := newSessionWithSeed(db, &LambdaStage{}, predictableSeed())
+	session, _ := newSessionWithSeed(db, newGameInitializer(), predictableSeed())
 	if session.Code != expected {
 		t.Errorf(`NewSession() created session with code "%s"; expected "%s"`, session.Code, expected)
 	}
@@ -54,8 +61,8 @@ func TestNewSession_CodeCollision(t *testing.T) {
 	db, cleanup := ConnectWithTestDB()
 	defer cleanup()
 
-	session1, _ := newSessionWithSeed(db, &LambdaStage{}, predictableSeed())
-	session2, _ := newSessionWithSeed(db, &LambdaStage{}, predictableSeed())
+	session1, _ := newSessionWithSeed(db, newGameInitializer(), predictableSeed())
+	session2, _ := newSessionWithSeed(db, newGameInitializer(), predictableSeed())
 
 	if session1.Code == session2.Code {
 		t.Errorf(`Both sessions were created with code collision "%s"`, session1.Code)
@@ -94,13 +101,32 @@ func TestSessionChannels(t *testing.T) {
 	db, cleanup := ConnectWithTestDB()
 	defer cleanup()
 
-	stage := &LambdaStage{}
+	game := newGameInitializer()
+	stage := game.LambdaStage()
 	event := textEvent("Test event")
-	session, _ := newSessionWithSeed(db, stage, predictableSeed())
-	session.PlayerEvents <- event
+	session, _ := newSessionWithSeed(db, game, predictableSeed())
 
+	session.HandlePlayerEvent(context.Background(), event)
+	// session.PlayerEvents <- PlayerEventEnvelope{
+	// 	PlayerEvent: event,
+	// 	Session:     *session,
+	// 	Context:     context.Background(),
+	// }
+
+	// TODO: LambdaStage.Events is not threadsafe so this test is flaky
+	time.Sleep(100 * time.Millisecond)
 	assert.Len(t, stage.Events, 1, "Expected exactly one event")
 
 	receivedEvent := stage.Events[0]
 	assert.Equal(t, receivedEvent, event)
+}
+
+// - Fixtures
+
+type LambdaGame struct {
+	*Game
+}
+
+func (g *LambdaGame) LambdaStage() *LambdaStage {
+	return g.initialStage.(*LambdaStage)
 }
