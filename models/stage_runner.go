@@ -13,5 +13,5 @@ package models
 // the game execution to another stage by ending the `Run()` and returning the
 // next `StageRunner` that will take over.
 type StageRunner interface {
-	Run(<-chan PlayerEventEnvelope) StageRunner
+	Run(<-chan PlayerEvent) StageRunner
 }

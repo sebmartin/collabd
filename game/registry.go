@@ -10,12 +10,12 @@ import (
 
 var (
 	gameRegistryMu sync.RWMutex
-	gameRegistry   = make(map[string]func(context.Context) (models.GameInitializer, error))
+	gameRegistry   = make(map[string]func(context.Context) (models.GameDescriber, error))
 )
 
 // Registers a game making it available from the server. If called twice with the
 // same game name, or game is nil, it panics.
-func Register(name string, game func(ctx context.Context) (models.GameInitializer, error)) {
+func Register(name string, game func(ctx context.Context) (models.GameDescriber, error)) {
 	gameRegistryMu.Lock()
 	defer gameRegistryMu.Unlock()
 
@@ -28,7 +28,7 @@ func Register(name string, game func(ctx context.Context) (models.GameInitialize
 	gameRegistry[name] = game
 }
 
-func NewGame(name string, ctx context.Context) (models.GameInitializer, error) {
+func NewGame(name string, ctx context.Context) (models.GameDescriber, error) {
 	gameRegistryMu.RLock()
 	defer gameRegistryMu.RUnlock()
 

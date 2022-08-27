@@ -53,8 +53,10 @@ func NewServer(driverName string, dsn string) (*Server, error) {
 	}, nil
 }
 
-func (s *Server) NewSession(ctx context.Context, name string) (*models.Session, error) {
-	game, err := NewGame(name, ctx)
+// Start a new session for a game. This will create a new instance of a game and execute the initial
+// stage runner.
+func (s *Server) NewSession(ctx context.Context, gameName string) (*models.Session, error) {
+	game, err := NewGame(gameName, ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -77,6 +79,7 @@ func (s *Server) appendSession(session *models.Session) {
 	s.sessions = append(s.sessions, session)
 }
 
+// Lookup existing sessions by code and return it.
 func (s *Server) SessionForCode(code string) (*models.Session, error) {
 	s.sessionsMu.RLock()
 	defer s.sessionsMu.RUnlock()
@@ -109,5 +112,5 @@ func (s *Server) JoinSession(ctx context.Context, player *models.Player, code st
 }
 
 func (s *Server) HandlePlayerEvent(ctx context.Context, sessionCode string, event models.PlayerEvent) {
-	// player event already has a context within
+	// TODO player event already has a context within
 }

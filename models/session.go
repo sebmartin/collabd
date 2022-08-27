@@ -3,7 +3,6 @@ package models
 import (
 	"context"
 	"math/rand"
-	"sync"
 	"time"
 
 	"gorm.io/gorm"
@@ -22,14 +21,12 @@ const SessionKey = contextKey("session")
 type Session struct {
 	gorm.Model
 
-	Code      string
-	Players   []*Player    `gorm:"-:all"`
-	PlayersMu sync.RWMutex `gorm:"-:all"` // TODO: this sucks, if the game routine modifies this as part of a stage then we don't have to worry about synchronization
+	Code    string
+	Players []*Player `gorm:"-:all"` // TODO remove once session is no longer aware of players
 
-	CurrentStage   StageRunner               `gorm:"-:all"`
-	ServerEvents   map[uint]chan ServerEvent `gorm:"-:all"`
-	ServerEventsMu sync.RWMutex              `gorm:"-:all"`
-	PlayerEvents   chan PlayerEventEnvelope  `gorm:"-:all"`
+	CurrentStage StageRunner               `gorm:"-:all"`
+	ServerEvents map[uint]chan ServerEvent `gorm:"-:all"`
+	PlayerEvents chan PlayerEvent          `gorm:"-:all"`
 }
 
 func (s *Session) AfterCreate(tx *gorm.DB) error {
@@ -51,14 +48,14 @@ func initSession(s *Session) {
 		s.ServerEvents[p.ID] = make(chan ServerEvent, ChanBufferSize)
 	}
 
-	s.PlayerEvents = make(chan PlayerEventEnvelope, ChanBufferSize)
+	s.PlayerEvents = make(chan PlayerEvent, ChanBufferSize)
 }
 
-func NewSession(db *gorm.DB, initializer GameInitializer) (*Session, error) {
+func NewSession(db *gorm.DB, initializer GameDescriber) (*Session, error) {
 	return newSessionWithSeed(db, initializer, time.Now().UnixNano)
 }
 
-func newSessionWithSeed(db *gorm.DB, initializer GameInitializer, seed func() int64) (*Session, error) {
+func newSessionWithSeed(db *gorm.DB, initializer GameDescriber, seed func() int64) (*Session, error) {
 	var savedSession *Session
 	for {
 		rand.Seed(seed()) // TODO Use crypto.rand instead!
@@ -93,11 +90,11 @@ func (s *Session) AddPlayer(ctx context.Context, db *gorm.DB, p *Player) error {
 }
 
 func (s *Session) HandlePlayerEvent(ctx context.Context, event PlayerEvent) {
-	s.PlayerEvents <- PlayerEventEnvelope{
-		PlayerEvent: event,
-		Session:     *s,
-		Context:     context.WithValue(ctx, SessionKey, s),
-	}
+	// s.PlayerEvents <- PlayerEvent{
+	// 	PlayerEvent: event,
+	// 	Session:     *s,
+	// 	Context:     context.WithValue(ctx, SessionKey, s),
+	// }
 }
 
 func (s *Session) SendServerEvent(playerID uint, event ServerEvent) {

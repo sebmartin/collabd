@@ -9,7 +9,7 @@ import (
 )
 
 func init() {
-	game.Register("Connect4", func(ctx context.Context) (models.GameInitializer, error) {
+	game.Register("Connect4", func(ctx context.Context) (models.GameDescriber, error) {
 		return NewGame(), nil
 	})
 }

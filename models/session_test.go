@@ -107,6 +107,7 @@ func TestSessionChannels(t *testing.T) {
 	session, _ := newSessionWithSeed(db, game, predictableSeed())
 
 	session.HandlePlayerEvent(context.Background(), event)
+	// TODO: we'll change how this works:
 	// session.PlayerEvents <- PlayerEventEnvelope{
 	// 	PlayerEvent: event,
 	// 	Session:     *session,

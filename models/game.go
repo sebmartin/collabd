@@ -5,13 +5,6 @@ type Game struct {
 	initialStage StageRunner
 }
 
-func NewGame(name string, stage StageRunner) *Game {
-	return &Game{
-		name:         name,
-		initialStage: stage,
-	}
-}
-
 func (g Game) Name() string {
 	return g.name
 }
@@ -20,7 +13,14 @@ func (g Game) InitialStage() StageRunner {
 	return g.initialStage
 }
 
-type GameInitializer interface {
+func NewGame(name string, stage StageRunner) *Game {
+	return &Game{
+		name:         name,
+		initialStage: stage,
+	}
+}
+
+type GameDescriber interface {
 	Name() string
 	InitialStage() StageRunner
 }

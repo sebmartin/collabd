@@ -17,7 +17,7 @@ func init() {
 }
 
 func registerTestGame() {
-	Register(testGameName, func(ctx context.Context) (models.GameInitializer, error) {
+	Register(testGameName, func(ctx context.Context) (models.GameDescriber, error) {
 		return TestGame{
 			Game: *models.NewGame(
 				"Test Game",
@@ -157,7 +157,7 @@ type TestStage struct {
 	recvPlayerEvents []models.PlayerEvent // Not thread safe, ok for now
 }
 
-func (s *TestStage) Run(playerEvents <-chan models.PlayerEventEnvelope) models.StageRunner {
+func (s *TestStage) Run(playerEvents <-chan models.PlayerEvent) models.StageRunner {
 	if s.recvPlayerEvents == nil {
 		s.recvPlayerEvents = make([]models.PlayerEvent, 10)
 	}
@@ -167,11 +167,12 @@ func (s *TestStage) Run(playerEvents <-chan models.PlayerEventEnvelope) models.S
 		if !ok {
 			return nil
 		}
-		s.recvPlayerEvents = append(s.recvPlayerEvents, event.PlayerEvent)
+		s.recvPlayerEvents = append(s.recvPlayerEvents, event)
 
-		if event.Type() == models.EventType("ECHO") {
-			event.Session.SendServerEvent(event.Sender().ID, event.PlayerEvent)
-		}
+		// TODO: will change how this works
+		// if event.Type() == models.EventType("ECHO") {
+		// 	event.Session.SendServerEvent(event.Sender().ID, event)
+		// }
 	}
 }
 
