@@ -7,9 +7,7 @@ import (
 type Player struct {
 	*gorm.Model
 
-	Name string
-	// SessionID int
-	// Session      Session // TODO is this relationship backwards? Can players join more than one game?
+	Name         string
 	ServerEvents chan ServerEvent `gorm:"-:all"`
 }
 

@@ -5,9 +5,11 @@ import "context"
 type EventType string
 
 const (
-	JoinEventType EventType = "JOIN"
+	JoinEventType  EventType = "JOIN" // TODO: remove once session_test is refactored to not use this
+	ErrorEventType EventType = "ERROR"
 )
 
+// TODO choose idiomatic names for these interfaces
 type Event interface {
 	Type() EventType
 }
@@ -20,38 +22,67 @@ type PlayerEvent interface {
 	Event
 
 	Sender() *Player
-	Context() context.Context // TODO: remove this once it is sent to the channel separately
+	Context() context.Context
 }
 
-type PlayerEventEnvelope struct {
-	PlayerEvent
-
-	Session Session
-	Context context.Context
+func NewPlayerEvent(ctx context.Context, eventType EventType, sender *Player) PlayerEvent {
+	return &basicPlayerEvent{
+		eventType: eventType,
+		sender:    sender,
+		ctx:       ctx,
+	}
 }
 
-type BasicPlayerEvent struct {
-	sender *Player
-	ctx    context.Context
+type basicPlayerEvent struct {
+	eventType EventType
+	sender    *Player
+	ctx       context.Context
 }
 
-func (e *BasicPlayerEvent) Type() EventType {
-	return "?"
+func (e *basicPlayerEvent) Type() EventType {
+	return e.eventType
 }
 
-func (e *BasicPlayerEvent) Sender() *Player {
+func (e *basicPlayerEvent) Sender() *Player {
 	return e.sender
 }
 
-func (e *BasicPlayerEvent) Context() context.Context {
+func (e *basicPlayerEvent) Context() context.Context {
 	return e.ctx
 }
 
-// Join Event
+func NewServerEvent(eventType EventType) ServerEvent {
+	return &basicServerEvent{
+		eventType: eventType,
+	}
+}
 
+type basicServerEvent struct {
+	eventType EventType
+}
+
+func (e *basicServerEvent) Type() EventType {
+	return e.eventType
+}
+
+// Event sent from server in response to a player event that generated an error
+type ErrorEvent struct {
+	ServerEvent
+	Error error
+}
+
+func NewErrorEvent(err error) *ErrorEvent {
+	return &ErrorEvent{
+		ServerEvent: NewServerEvent(ErrorEventType),
+		Error:       err,
+	}
+}
+
+// Join Event
+// TODO delete this when session_test is refactored to not handle joins
 func NewJoinEvent(ctx context.Context, player *Player, playerChannel chan<- ServerEvent) *JoinEvent {
 	return &JoinEvent{
-		PlayerEvent: &BasicPlayerEvent{
+		PlayerEvent: &basicPlayerEvent{
 			sender: player,
 			ctx:    ctx,
 		},
