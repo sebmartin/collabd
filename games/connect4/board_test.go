@@ -156,10 +156,7 @@ func TestConnect4_DropPiece(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			g := &Connect4{
-				Board: tt.board,
-			}
-			got, err := g.DropPiece(tt.args.p, tt.args.slot)
+			got, err := tt.board.DropPiece(tt.args.p, tt.args.slot)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Connect4.DropPiece() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -167,8 +164,8 @@ func TestConnect4_DropPiece(t *testing.T) {
 			if got != tt.want {
 				t.Errorf("Connect4.DropPiece() = %v, want %v", got, tt.want)
 			}
-			if g.Board != tt.finalBoard {
-				t.Errorf("Final board did not match.\nExpected:\n%s\nGot:\n%s", tt.finalBoard, g.Board)
+			if tt.board != tt.finalBoard {
+				t.Errorf("Final board did not match.\nExpected:\n%s\nGot:\n%s", tt.finalBoard, tt.board)
 			}
 		})
 	}
@@ -530,10 +527,7 @@ func TestConnect4_AnalyzeMove(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			g := &Connect4{
-				Board: tt.board,
-			}
-			if got := g.AnalyzeMove(tt.args.slot, tt.args.row); got != tt.want {
+			if got := tt.board.AnalyzeMove(tt.args.slot, tt.args.row); got != tt.want {
 				t.Errorf("Connect4.AnalyzeMove() = %v, want %v", got, tt.want)
 			}
 		})
