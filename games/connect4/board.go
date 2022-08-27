@@ -10,6 +10,11 @@ const (
 	Black
 )
 
+const (
+	MaxColumns uint = 7
+	MaxRows    uint = 6
+)
+
 type Board [MaxRows][MaxColumns]Piece
 
 func (board *Board) DropPiece(p Piece, slot uint) (int, error) {

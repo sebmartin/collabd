@@ -4,32 +4,32 @@ import (
 	"context"
 
 	"github.com/sebmartin/collabd/game"
+	"github.com/sebmartin/collabd/game/join_stage"
 	"github.com/sebmartin/collabd/models"
 )
 
 func init() {
 	game.Register("Connect4", func(ctx context.Context) (models.GameDescriber, error) {
-		return NewGame(), nil
+		return models.NewGame(
+			"Connect 4",
+			&join_stage.JoinGame{
+				MinPlayers: 2,
+				MaxPlayers: 2,
+				StartGame:  initialStage,
+			},
+		), nil
 	})
 }
 
-const (
-	MaxColumns uint = 7
-	MaxRows    uint = 6
-)
+func initialStage(players []*models.Player) models.StageRunner {
+	if len(players) != 2 {
+		panic("Connect 4 requires exactly two players")
+	}
 
-type Connect4 struct {
-	models.Game
-
-	Board Board
-}
-
-func NewGame() Connect4 {
-	return Connect4{
-		Game: *models.NewGame(
-			"Connect 4",
-			nil, // TODO: set initialStage
-		),
-		Board: [6][7]Piece{},
+	return &stage{
+		players: [2]*models.Player{
+			players[0], players[1],
+		},
+		board: Board{},
 	}
 }
