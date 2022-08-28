@@ -10,6 +10,7 @@ import (
 	"github.com/sebmartin/collabd/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gorm.io/gorm"
 )
 
 const testGameName = "__test_game__"
@@ -52,6 +53,11 @@ func newServerSession(t *testing.T) (*Server, *models.Session, func()) {
 	// stage := &models.LambdaStage{}
 	session, _ := server.NewSession(context.Background(), testGameName)
 	return server, session, cleanup
+}
+
+func newPlayer(db *gorm.DB, name string) *models.Player {
+	player, _ := models.NewPlayer(db, name)
+	return player
 }
 
 func TestServer_NewSession_SessionForCode(t *testing.T) {
@@ -108,11 +114,32 @@ func TestServer_HandlePlayerEvent_UnknownCode(t *testing.T) {
 	server, _, cleanup := newServerSession(t)
 	defer cleanup()
 
-	player, _ := models.NewPlayer(server.db, "Steve")
+	player := newPlayer(server.db, "Steve")
 	event := NewEchoEvent(context.Background(), "Well hello there!", player)
 	result := server.HandlePlayerEvent("XXXX", event)
 
 	assert.ErrorContains(t, result, `could not find session with code "XXXX"`)
+}
+
+func TestBroadcast(t *testing.T) {
+	server, _ := newServer(t)
+	players := []*models.Player{
+		newPlayer(server.db, "Alice"),
+		newPlayer(server.db, "John"),
+		newPlayer(server.db, "Sophie"),
+	}
+
+	echoEvent := NewEchoEvent(context.Background(), "hello", players[0])
+	Broadcast(players, NewEchoEchoEvent(echoEvent))
+
+	for _, p := range players {
+		select {
+		case event := <-p.ServerEvents:
+			assert.IsType(t, &EchoEchoEvent{}, event)
+		default:
+			assert.Fail(t, "Did not receive the event", "Player: %s", p.Name)
+		}
+	}
 }
 
 // - Fixtures
@@ -139,8 +166,8 @@ type EchoEvent struct {
 	Message string
 }
 
-func NewEchoEvent(ctx context.Context, message string, sender *models.Player) EchoEvent {
-	return EchoEvent{
+func NewEchoEvent(ctx context.Context, message string, sender *models.Player) *EchoEvent {
+	return &EchoEvent{
 		PlayerEvent: models.NewPlayerEvent(ctx, "ECHO", sender),
 		Message:     message,
 	}

@@ -100,3 +100,9 @@ func (s *Server) HandlePlayerEvent(sessionCode string, event models.PlayerEvent)
 	session.HandlePlayerEvent(event)
 	return nil
 }
+
+func Broadcast(players []*models.Player, event models.ServerEvent) {
+	for _, p := range players {
+		p.ServerEvents <- event
+	}
+}
