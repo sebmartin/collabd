@@ -13,7 +13,7 @@ func TestConnect4_DropPiece(t *testing.T) {
 		name       string
 		board      Board
 		args       args
-		want       int
+		want       uint
 		wantErr    bool
 		finalBoard Board
 	}{
@@ -139,7 +139,7 @@ func TestConnect4_DropPiece(t *testing.T) {
 				{B, X, X, X, X, X, X},
 				{B, B, B, R, X, X, X},
 			},
-			want:    -1,
+			want:    0,
 			wantErr: true,
 		},
 		{
@@ -150,7 +150,7 @@ func TestConnect4_DropPiece(t *testing.T) {
 			},
 			board:      Board{},
 			finalBoard: Board{},
-			want:       -1,
+			want:       0,
 			wantErr:    true,
 		},
 	}

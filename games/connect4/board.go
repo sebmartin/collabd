@@ -17,21 +17,22 @@ const (
 
 type Board [MaxRows][MaxColumns]Piece
 
-func (board *Board) DropPiece(p Piece, slot uint) (int, error) {
-	var targetHeight int
+// Drop a piece in a specified slot. Returns the row where the piece landed.
+func (board *Board) DropPiece(p Piece, slot uint) (uint, error) {
+	var finalRow int
 	if slot >= MaxColumns {
-		return -1, fmt.Errorf("slot %d exceeds the slot maximum of %d", slot, MaxColumns)
+		return 0, fmt.Errorf("slot %d exceeds the slot maximum of %d", slot, MaxColumns)
 	}
-	for targetHeight = int(MaxRows) - 1; ; targetHeight-- {
-		if targetHeight < 0 {
-			return -1, fmt.Errorf("slot %d is full and cannot accept another piece", slot)
+	for finalRow = int(MaxRows) - 1; ; finalRow-- {
+		if finalRow < 0 {
+			return 0, fmt.Errorf("slot %d is full and cannot accept another piece", slot)
 		}
-		if board[targetHeight][slot] == Unclaimed {
+		if board[finalRow][slot] == Unclaimed {
 			break
 		}
 	}
-	board[targetHeight][slot] = p
-	return int(targetHeight), nil
+	board[finalRow][slot] = p
+	return uint(finalRow), nil
 }
 
 func (board *Board) AnalyzeMove(slot uint, row uint) GameResult {
