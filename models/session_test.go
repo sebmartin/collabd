@@ -1,12 +1,8 @@
 package models
 
 import (
-	"context"
 	"math"
 	"testing"
-	"time"
-
-	"github.com/stretchr/testify/assert"
 )
 
 func predictableSeed() func() int64 {
@@ -21,20 +17,6 @@ func newGameInitializer() *LambdaGame {
 	return &LambdaGame{
 		Game: NewGame("TestGame", &LambdaStage{}),
 	}
-}
-
-type textEvent string
-
-func (e textEvent) Type() EventType {
-	return "TEXT"
-}
-
-func (e textEvent) Sender() *Player {
-	return nil
-}
-
-func (e textEvent) Context() context.Context {
-	return nil
 }
 
 func TestNewSession(t *testing.T) {
@@ -95,31 +77,6 @@ func Test_alphaSessionCode(t *testing.T) {
 			}
 		})
 	}
-}
-
-func TestSessionChannels(t *testing.T) {
-	db, cleanup := ConnectWithTestDB()
-	defer cleanup()
-
-	game := newGameInitializer()
-	stage := game.LambdaStage()
-	event := textEvent("Test event")
-	session, _ := newSessionWithSeed(db, game, predictableSeed())
-
-	session.HandlePlayerEvent(context.Background(), event)
-	// TODO: we'll change how this works:
-	// session.PlayerEvents <- PlayerEventEnvelope{
-	// 	PlayerEvent: event,
-	// 	Session:     *session,
-	// 	Context:     context.Background(),
-	// }
-
-	// TODO: LambdaStage.Events is not threadsafe so this test is flaky
-	time.Sleep(100 * time.Millisecond)
-	assert.Len(t, stage.Events, 1, "Expected exactly one event")
-
-	receivedEvent := stage.Events[0]
-	assert.Equal(t, receivedEvent, event)
 }
 
 // - Fixtures

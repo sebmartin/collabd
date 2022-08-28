@@ -1,7 +1,6 @@
 package models
 
 import (
-	"context"
 	"math/rand"
 	"time"
 
@@ -41,7 +40,7 @@ func (s *Session) AfterFind(tx *gorm.DB) error {
 
 // Initialize some dynamic properties on the model, especially useful with GORM hooks
 // for when a model is retrieved from the database
-// TODO: add a method for mutating these properties to avoid this function
+// TODO: maybe add a method for mutating these properties to avoid this function
 func initSession(s *Session) {
 	s.ServerEvents = make(map[uint]chan ServerEvent)
 	for _, p := range s.Players {
@@ -71,40 +70,30 @@ func newSessionWithSeed(db *gorm.DB, initializer GameDescriber, seed func() int6
 
 	// Start the session in a go routine
 	savedSession.CurrentStage = initializer.InitialStage()
-	go savedSession.CurrentStage.Run(savedSession.PlayerEvents)
+
+	// TODO - wrap this go routine in a lambda to manage the stage transitions
+	// .. also, make that threadsafe
+	go startSession(savedSession)
 
 	return savedSession, nil
 }
 
-// TODO get DB from context
-func (s *Session) AddPlayer(ctx context.Context, db *gorm.DB, p *Player) error {
-	s.Players = append(s.Players, p)
-	if result := db.Save(s); result.Error != nil {
-		return result.Error
+// This is the main game loop which is executed as a subroutine. It starts running
+// the initial StageRunner and transitions to others as the runner processes events.
+func startSession(session *Session) {
+	currentStage := session.CurrentStage
+	for {
+		currentStage = currentStage.Run(session.PlayerEvents)
+
+		// TODO: how does the game end?
+		if currentStage == nil {
+			break
+		}
 	}
-
-	s.ServerEvents[p.ID] = p.ServerEvents
-	s.HandlePlayerEvent(ctx, NewJoinEvent(ctx, p, p.ServerEvents))
-	// s.PlayerEvents <- NewJoinEvent(ctx, p, p.ServerEvents)
-	return nil
 }
 
-func (s *Session) HandlePlayerEvent(ctx context.Context, event PlayerEvent) {
-	// s.PlayerEvents <- PlayerEvent{
-	// 	PlayerEvent: event,
-	// 	Session:     *s,
-	// 	Context:     context.WithValue(ctx, SessionKey, s),
-	// }
-}
-
-func (s *Session) SendServerEvent(playerID uint, event ServerEvent) {
-	panic("// TODO")
-}
-
-func (s *Session) BoardcastServerEvent(event ServerEvent) {
-	for _, p := range s.Players {
-		s.SendServerEvent(p.ID, event)
-	}
+func (s *Session) HandlePlayerEvent(event PlayerEvent) {
+	s.PlayerEvents <- event
 }
 
 func alphaSessionCode(code int) string {

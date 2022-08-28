@@ -5,9 +5,11 @@ import (
 	"os"
 	"path"
 	"testing"
+	"time"
 
 	"github.com/sebmartin/collabd/models"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const testGameName = "__test_game__"
@@ -52,7 +54,7 @@ func newServerSession(t *testing.T) (*Server, *models.Session, func()) {
 	return server, session, cleanup
 }
 
-func TestServer_NewSession(t *testing.T) {
+func TestServer_NewSession_SessionForCode(t *testing.T) {
 	server, session, cleanup := newServerSession(t)
 	defer cleanup()
 
@@ -83,68 +85,34 @@ func TestServer_SessionForCode_UnknownCode(t *testing.T) {
 	assert.ErrorContains(t, err, `could not find session with code "ABCD"`)
 }
 
-func TestServer_JoinSession(t *testing.T) {
+func TestServer_HandlePlayerEvent(t *testing.T) {
 	server, session, cleanup := newServerSession(t)
 	defer cleanup()
 
 	player, _ := models.NewPlayer(server.db, "Steve")
-	joinedSession, err := server.JoinSession(context.Background(), player, session.Code)
-	assert.Nil(t, err)
-	assert.Equal(t, session, joinedSession)
-	assert.Len(t, joinedSession.Players, 1)
-	assert.Len(t, session.Players, 1)
-	assert.Equal(t, joinedSession.Players[0], player)
+	event := NewEchoEvent(context.Background(), "Well hello there!", player)
+	result := server.HandlePlayerEvent(session.Code, event)
+
+	assert.Nil(t, result)
+
+	select {
+	case serverEvent := <-player.ServerEvents:
+		assert.IsType(t, &EchoEchoEvent{}, serverEvent)
+		assert.Equal(t, event, *serverEvent.(*EchoEchoEvent).OriginalEvent)
+	case <-time.After(100 * time.Millisecond):
+		require.Fail(t, "Timeout", "Did not receive expected server event before timeout")
+	}
 }
 
-func TestServer_JoinSession_ServerEventsChannel(t *testing.T) {
-	// TODO: this is testing code in session so it might make more sense to test it in that context
-	server, session, cleanup := newServerSession(t)
+func TestServer_HandlePlayerEvent_UnknownCode(t *testing.T) {
+	server, _, cleanup := newServerSession(t)
 	defer cleanup()
 
 	player, _ := models.NewPlayer(server.db, "Steve")
-	joinedSession, _ := server.JoinSession(context.Background(), player, session.Code)
+	event := NewEchoEvent(context.Background(), "Well hello there!", player)
+	result := server.HandlePlayerEvent("XXXX", event)
 
-	assert.Contains(t, joinedSession.ServerEvents, player.ID, "No player event channel found in session for player")
-
-	event := &models.WelcomeEvent{
-		Name: player.Name,
-	}
-
-	// Send dummy event
-	select {
-	case joinedSession.ServerEvents[player.ID] <- event:
-		break
-	default:
-		assert.FailNow(t, "Player's server events channel is unbuffered (blocked)")
-	}
-
-	// Receive the event
-	select {
-	case rcvEvent := <-player.ServerEvents:
-		assert.Equal(t, event, rcvEvent)
-	default:
-		assert.FailNow(t, "Server event was not received")
-	}
-}
-
-func TestServer_JoinSession_PlayerEventsChannels(t *testing.T) {
-	// server, session, cleanup := newServerSession(t)
-	// defer cleanup()
-
-	// player, _ := models.NewPlayer(server.db, "Steve")
-	// joinedSession, _ := server.JoinSession(context.Background(), player, session.Code)
-
-	// 	TODO make sure player channels work
-}
-
-func TestServer_JoinSession_UnknownCode(t *testing.T) {
-	server, cleanup := newServer(t)
-	defer cleanup()
-
-	player, _ := models.NewPlayer(server.db, "Steve")
-	joinedSession, err := server.JoinSession(context.Background(), player, "ABCD")
-	assert.Nil(t, joinedSession)
-	assert.ErrorContains(t, err, `could not find session with code "ABCD"`)
+	assert.ErrorContains(t, result, `could not find session with code "XXXX"`)
 }
 
 // - Fixtures
@@ -153,34 +121,40 @@ type TestGame struct {
 	models.Game
 }
 
-type TestStage struct {
-	recvPlayerEvents []models.PlayerEvent // Not thread safe, ok for now
-}
+type TestStage struct{}
 
 func (s *TestStage) Run(playerEvents <-chan models.PlayerEvent) models.StageRunner {
-	if s.recvPlayerEvents == nil {
-		s.recvPlayerEvents = make([]models.PlayerEvent, 10)
-	}
-
 	for {
-		event, ok := <-playerEvents
-		if !ok {
-			return nil
+		event := <-playerEvents
+		switch event := event.(type) {
+		case EchoEvent:
+			event.Sender().ServerEvents <- NewEchoEchoEvent(&event)
 		}
-		s.recvPlayerEvents = append(s.recvPlayerEvents, event)
-
-		// TODO: will change how this works
-		// if event.Type() == models.EventType("ECHO") {
-		// 	event.Session.SendServerEvent(event.Sender().ID, event)
-		// }
 	}
 }
 
 type EchoEvent struct {
-	Name    string
+	models.PlayerEvent
+
 	Message string
 }
 
-func (e *EchoEvent) Type() models.EventType {
-	return models.EventType("ECHO")
+func NewEchoEvent(ctx context.Context, message string, sender *models.Player) EchoEvent {
+	return EchoEvent{
+		PlayerEvent: models.NewPlayerEvent(ctx, "ECHO", sender),
+		Message:     message,
+	}
+}
+
+type EchoEchoEvent struct {
+	models.ServerEvent
+
+	OriginalEvent *EchoEvent
+}
+
+func NewEchoEchoEvent(event *EchoEvent) *EchoEchoEvent {
+	return &EchoEchoEvent{
+		ServerEvent:   models.NewServerEvent("ECHO_ECHO"),
+		OriginalEvent: event,
+	}
 }
