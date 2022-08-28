@@ -13,10 +13,8 @@ func predictableSeed() func() int64 {
 	}
 }
 
-func newGameInitializer() *LambdaGame {
-	return &LambdaGame{
-		Game: NewGame("TestGame", &LambdaStage{}),
-	}
+func newGame() GameDescriber {
+	return NewGame("TestGame", &testStage{})
 }
 
 func TestNewSession(t *testing.T) {
@@ -24,7 +22,7 @@ func TestNewSession(t *testing.T) {
 	defer cleanup()
 
 	expected := "NBDX"
-	session, _ := newSessionWithSeed(db, newGameInitializer(), predictableSeed())
+	session, _ := newSessionWithSeed(db, newGame(), predictableSeed())
 	if session.Code != expected {
 		t.Errorf(`NewSession() created session with code "%s"; expected "%s"`, session.Code, expected)
 	}
@@ -43,8 +41,8 @@ func TestNewSession_CodeCollision(t *testing.T) {
 	db, cleanup := ConnectWithTestDB()
 	defer cleanup()
 
-	session1, _ := newSessionWithSeed(db, newGameInitializer(), predictableSeed())
-	session2, _ := newSessionWithSeed(db, newGameInitializer(), predictableSeed())
+	session1, _ := newSessionWithSeed(db, newGame(), predictableSeed())
+	session2, _ := newSessionWithSeed(db, newGame(), predictableSeed())
 
 	if session1.Code == session2.Code {
 		t.Errorf(`Both sessions were created with code collision "%s"`, session1.Code)
@@ -81,10 +79,8 @@ func Test_alphaSessionCode(t *testing.T) {
 
 // - Fixtures
 
-type LambdaGame struct {
-	*Game
-}
+type testStage struct{}
 
-func (g *LambdaGame) LambdaStage() *LambdaStage {
-	return g.initialStage.(*LambdaStage)
+func (s *testStage) Run(<-chan PlayerEvent) StageRunner {
+	return nil
 }

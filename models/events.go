@@ -77,26 +77,3 @@ func NewErrorEvent(err error) *ErrorEvent {
 		Error:       err,
 	}
 }
-
-// Join Event
-// TODO delete this when session_test is refactored to not handle joins
-func NewJoinEvent(ctx context.Context, player *Player, playerChannel chan<- ServerEvent) *JoinEvent {
-	return &JoinEvent{
-		PlayerEvent: &basicPlayerEvent{
-			sender: player,
-			ctx:    ctx,
-		},
-		Channel: playerChannel,
-	}
-}
-
-// Player event that the server receives when a player requests to join an active session
-type JoinEvent struct {
-	PlayerEvent
-
-	Channel chan<- ServerEvent
-}
-
-func (e JoinEvent) Type() EventType {
-	return JoinEventType
-}

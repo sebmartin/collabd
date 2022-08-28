@@ -21,10 +21,10 @@ func init() {
 
 func registerTestGame() {
 	Register(testGameName, func(ctx context.Context) (models.GameDescriber, error) {
-		return TestGame{
+		return testGame{
 			Game: *models.NewGame(
 				"Test Game",
-				&TestStage{},
+				&testStage{},
 			),
 		}, nil
 	})
@@ -50,7 +50,6 @@ func newServer(t *testing.T) (*Server, func()) {
 func newServerSession(t *testing.T) (*Server, *models.Session, func()) {
 	server, cleanup := newServer(t)
 
-	// stage := &models.LambdaStage{}
 	session, _ := server.NewSession(context.Background(), testGameName)
 	return server, session, cleanup
 }
@@ -96,16 +95,16 @@ func TestServer_HandlePlayerEvent(t *testing.T) {
 	defer cleanup()
 
 	player, _ := models.NewPlayer(server.db, "Steve")
-	event := NewEchoEvent(context.Background(), "Well hello there!", player)
+	event := newEchoEvent(context.Background(), "Well hello there!", player)
 	result := server.HandlePlayerEvent(session.Code, event)
 
 	assert.Nil(t, result)
 
 	select {
 	case serverEvent := <-player.ServerEvents:
-		assert.IsType(t, &EchoEchoEvent{}, serverEvent)
-		assert.Equal(t, event, *serverEvent.(*EchoEchoEvent).OriginalEvent)
-	case <-time.After(100 * time.Millisecond):
+		assert.IsType(t, &echoEchoEvent{}, serverEvent)
+		assert.Equal(t, event, serverEvent.(*echoEchoEvent).OriginalEvent)
+	case <-time.After(500 * time.Millisecond):
 		require.Fail(t, "Timeout", "Did not receive expected server event before timeout")
 	}
 }
@@ -115,7 +114,7 @@ func TestServer_HandlePlayerEvent_UnknownCode(t *testing.T) {
 	defer cleanup()
 
 	player := newPlayer(server.db, "Steve")
-	event := NewEchoEvent(context.Background(), "Well hello there!", player)
+	event := newEchoEvent(context.Background(), "Well hello there!", player)
 	result := server.HandlePlayerEvent("XXXX", event)
 
 	assert.ErrorContains(t, result, `could not find session with code "XXXX"`)
@@ -129,13 +128,13 @@ func TestBroadcast(t *testing.T) {
 		newPlayer(server.db, "Sophie"),
 	}
 
-	echoEvent := NewEchoEvent(context.Background(), "hello", players[0])
-	Broadcast(players, NewEchoEchoEvent(echoEvent))
+	echoEvent := newEchoEvent(context.Background(), "hello", players[0])
+	Broadcast(players, newEchoEchoEvent(echoEvent))
 
 	for _, p := range players {
 		select {
 		case event := <-p.ServerEvents:
-			assert.IsType(t, &EchoEchoEvent{}, event)
+			assert.IsType(t, &echoEchoEvent{}, event)
 		default:
 			assert.Fail(t, "Did not receive the event", "Player: %s", p.Name)
 		}
@@ -144,43 +143,43 @@ func TestBroadcast(t *testing.T) {
 
 // - Fixtures
 
-type TestGame struct {
+type testGame struct {
 	models.Game
 }
 
-type TestStage struct{}
+type testStage struct{}
 
-func (s *TestStage) Run(playerEvents <-chan models.PlayerEvent) models.StageRunner {
+func (s *testStage) Run(playerEvents <-chan models.PlayerEvent) models.StageRunner {
 	for {
 		event := <-playerEvents
 		switch event := event.(type) {
-		case EchoEvent:
-			event.Sender().ServerEvents <- NewEchoEchoEvent(&event)
+		case *echoEvent:
+			event.Sender().ServerEvents <- newEchoEchoEvent(event)
 		}
 	}
 }
 
-type EchoEvent struct {
+type echoEvent struct {
 	models.PlayerEvent
 
 	Message string
 }
 
-func NewEchoEvent(ctx context.Context, message string, sender *models.Player) *EchoEvent {
-	return &EchoEvent{
+func newEchoEvent(ctx context.Context, message string, sender *models.Player) *echoEvent {
+	return &echoEvent{
 		PlayerEvent: models.NewPlayerEvent(ctx, "ECHO", sender),
 		Message:     message,
 	}
 }
 
-type EchoEchoEvent struct {
+type echoEchoEvent struct {
 	models.ServerEvent
 
-	OriginalEvent *EchoEvent
+	OriginalEvent *echoEvent
 }
 
-func NewEchoEchoEvent(event *EchoEvent) *EchoEchoEvent {
-	return &EchoEchoEvent{
+func newEchoEchoEvent(event *echoEvent) *echoEchoEvent {
+	return &echoEchoEvent{
 		ServerEvent:   models.NewServerEvent("ECHO_ECHO"),
 		OriginalEvent: event,
 	}
