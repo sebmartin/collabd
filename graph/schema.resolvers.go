@@ -5,28 +5,28 @@ package graph
 
 import (
 	"context"
+	"fmt"
 	"log"
 
 	"github.com/sebmartin/collabd/graph/generated"
 	"github.com/sebmartin/collabd/models"
 )
 
-type TodoError string
-
-func (e TodoError) Error() string {
-	return string(e)
-}
-
 // StartSession is the resolver for the startSession field.
 func (r *mutationResolver) StartSession(ctx context.Context) (*models.Session, error) {
 	// return models.NewSession(r.DB)
-	return nil, TodoError("we need to bind a session to a game stage")
+	return nil, fmt.Errorf("we need to bind a session to a game stage")
 }
 
 // JoinSession is the resolver for the joinSession field.
 func (r *mutationResolver) JoinSession(ctx context.Context, name string, code string) (*models.Player, error) {
 	// return models.NewPlayer(r.DB, name, code)
-	return nil, TodoError("obtain session from the repo (in memory session)")
+	return nil, fmt.Errorf("obtain session from the repo (in memory session)")
+}
+
+// Session is the resolver for the session field.
+func (r *playerResolver) Session(ctx context.Context, obj *models.Player) (*models.Session, error) {
+	panic(fmt.Errorf("not implemented"))
 }
 
 // Sessions is the resolver for the sessions field.
@@ -45,8 +45,12 @@ func (r *queryResolver) Sessions(ctx context.Context) ([]*models.Session, error)
 // Mutation returns generated.MutationResolver implementation.
 func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
 
+// Player returns generated.PlayerResolver implementation.
+func (r *Resolver) Player() generated.PlayerResolver { return &playerResolver{r} }
+
 // Query returns generated.QueryResolver implementation.
 func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 
 type mutationResolver struct{ *Resolver }
+type playerResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }

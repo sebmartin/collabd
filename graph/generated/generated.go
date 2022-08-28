@@ -37,6 +37,7 @@ type Config struct {
 
 type ResolverRoot interface {
 	Mutation() MutationResolver
+	Player() PlayerResolver
 	Query() QueryResolver
 }
 
@@ -67,6 +68,9 @@ type ComplexityRoot struct {
 type MutationResolver interface {
 	StartSession(ctx context.Context) (*models.Session, error)
 	JoinSession(ctx context.Context, name string, code string) (*models.Player, error)
+}
+type PlayerResolver interface {
+	Session(ctx context.Context, obj *models.Player) (*models.Session, error)
 }
 type QueryResolver interface {
 	Sessions(ctx context.Context) ([]*models.Session, error)
@@ -484,7 +488,7 @@ func (ec *executionContext) _Player_session(ctx context.Context, field graphql.C
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Session, nil
+		return ec.resolvers.Player().Session(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -496,17 +500,17 @@ func (ec *executionContext) _Player_session(ctx context.Context, field graphql.C
 		}
 		return graphql.Null
 	}
-	res := resTmp.(models.Session)
+	res := resTmp.(*models.Session)
 	fc.Result = res
-	return ec.marshalNSession2githubᚗcomᚋsebmartinᚋcollabdᚋmodelsᚐSession(ctx, field.Selections, res)
+	return ec.marshalNSession2ᚖgithubᚗcomᚋsebmartinᚋcollabdᚋmodelsᚐSession(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Player_session(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Player",
 		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "id":
@@ -2631,15 +2635,28 @@ func (ec *executionContext) _Player(ctx context.Context, sel ast.SelectionSet, o
 			out.Values[i] = ec._Player_name(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "session":
+			field := field
 
-			out.Values[i] = ec._Player_session(ctx, field, obj)
-
-			if out.Values[i] == graphql.Null {
-				invalids++
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Player_session(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
 			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return innerFunc(ctx)
+
+			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
