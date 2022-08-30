@@ -21,7 +21,7 @@ type Board [MaxRows][MaxColumns]Piece
 func (board *Board) DropPiece(p Piece, slot uint) (uint, error) {
 	var finalRow int
 	if slot >= MaxColumns {
-		return 0, fmt.Errorf("slot %d exceeds the slot maximum of %d", slot, MaxColumns)
+		return 0, fmt.Errorf("slot %d exceeds the slot maximum of %d", slot, MaxColumns-1)
 	}
 	for finalRow = int(MaxRows) - 1; ; finalRow-- {
 		if finalRow < 0 {

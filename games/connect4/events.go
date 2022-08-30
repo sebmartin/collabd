@@ -32,9 +32,10 @@ type DropPieceEvent struct {
 	Slot uint
 }
 
-func NewDropPieceEvent(ctx context.Context, sender *models.Player) *DropPieceEvent {
+func NewDropPieceEvent(ctx context.Context, sender *models.Player, slot uint) *DropPieceEvent {
 	return &DropPieceEvent{
 		PlayerEvent: models.NewPlayerEvent(ctx, DropPieceEventType, sender),
+		Slot:        slot,
 	}
 }
 

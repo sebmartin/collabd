@@ -19,18 +19,18 @@ func (s *mainStage) Run(playerEvents <-chan models.PlayerEvent) models.StageRunn
 	for {
 		event := <-playerEvents
 		switch event := event.(type) {
-		case DropPieceEvent:
+		case *DropPieceEvent:
 			player := event.Sender()
+			piece, err := s.playerPiece(player)
+			if err != nil {
+				player.ServerEvents <- models.NewErrorEvent(err)
+				continue
+			}
+
 			if player.ID != s.activePlayer.ID {
 				player.ServerEvents <- models.NewErrorEvent(
 					fmt.Errorf("player attempted to drop piece when not their turn: %s", player.Name),
 				)
-				continue
-			}
-
-			piece, err := s.playerPiece(player)
-			if err != nil {
-				player.ServerEvents <- models.NewErrorEvent(err)
 				continue
 			}
 
@@ -59,6 +59,7 @@ func (s *mainStage) Run(playerEvents <-chan models.PlayerEvent) models.StageRunn
 				player.ServerEvents <- models.NewErrorEvent(err)
 				continue
 			}
+			s.activePlayer = otherPlayer // TODO: make thread safe?
 			game.Broadcast(s.players[:], NewPlayerTurnEvent(
 				otherPlayer,
 			))
@@ -72,7 +73,7 @@ func (s *mainStage) playerPiece(player *models.Player) (Piece, error) {
 	} else if player == s.players[1] {
 		return Black, nil
 	}
-	return Red, fmt.Errorf("unkonwn player: %s", player.Name)
+	return Red, fmt.Errorf("unknown player: %s", player.Name)
 }
 
 func (s *mainStage) otherPlayer(player *models.Player) (*models.Player, error) {
