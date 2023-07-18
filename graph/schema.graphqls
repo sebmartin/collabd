@@ -13,10 +13,11 @@ type Player {
 }
 
 type Query {
+  gamesList: [String!]!
   sessions: [Session!]!
 }
 
 type Mutation {
-  startSession: Session!
+  startSession(gameName: String): Session!
   joinSession(name: String!, code: String!): Player!
 }

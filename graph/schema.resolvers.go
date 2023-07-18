@@ -13,9 +13,8 @@ import (
 )
 
 // StartSession is the resolver for the startSession field.
-func (r *mutationResolver) StartSession(ctx context.Context) (*models.Session, error) {
-	// return models.NewSession(r.DB)
-	return nil, fmt.Errorf("we need to bind a session to a game stage")
+func (r *mutationResolver) StartSession(ctx context.Context, gameName *string) (*models.Session, error) {
+	return r.GameServer.NewSession(ctx, gameName)
 }
 
 // JoinSession is the resolver for the joinSession field.
@@ -27,6 +26,11 @@ func (r *mutationResolver) JoinSession(ctx context.Context, name string, code st
 // Session is the resolver for the session field.
 func (r *playerResolver) Session(ctx context.Context, obj *models.Player) (*models.Session, error) {
 	panic(fmt.Errorf("not implemented"))
+}
+
+// GamesList is the resolver for the gamesList field.
+func (r *queryResolver) GamesList(ctx context.Context) ([]string, error) {
+	return r.GameServer.GamesList()
 }
 
 // Sessions is the resolver for the sessions field.

@@ -38,3 +38,13 @@ func NewGame(name string, ctx context.Context) (models.GameDescriber, error) {
 	}
 	return gameInit(ctx)
 }
+
+func RegisteredGames() (names []string) {
+	gameRegistryMu.RLock()
+	defer gameRegistryMu.RUnlock()
+
+	for name := range gameRegistry {
+		names = append(names, name)
+	}
+	return names
+}

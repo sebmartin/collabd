@@ -8,7 +8,7 @@ import (
 	"github.com/sebmartin/collabd/models"
 )
 
-func init() {
+func Register() {
 	game.Register("Connect4", func(ctx context.Context) (models.GameDescriber, error) {
 		return models.NewGame(
 			"Connect 4",

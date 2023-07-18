@@ -47,7 +47,7 @@ type DirectiveRoot struct {
 type ComplexityRoot struct {
 	Mutation struct {
 		JoinSession  func(childComplexity int, name string, code string) int
-		StartSession func(childComplexity int) int
+		StartSession func(childComplexity int, gameName *string) int
 	}
 
 	Player struct {
@@ -56,7 +56,8 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		Sessions func(childComplexity int) int
+		GamesList func(childComplexity int) int
+		Sessions  func(childComplexity int) int
 	}
 
 	Session struct {
@@ -66,13 +67,14 @@ type ComplexityRoot struct {
 }
 
 type MutationResolver interface {
-	StartSession(ctx context.Context) (*models.Session, error)
+	StartSession(ctx context.Context, gameName *string) (*models.Session, error)
 	JoinSession(ctx context.Context, name string, code string) (*models.Player, error)
 }
 type PlayerResolver interface {
 	Session(ctx context.Context, obj *models.Player) (*models.Session, error)
 }
 type QueryResolver interface {
+	GamesList(ctx context.Context) ([]string, error)
 	Sessions(ctx context.Context) ([]*models.Session, error)
 }
 
@@ -108,7 +110,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			break
 		}
 
-		return e.complexity.Mutation.StartSession(childComplexity), true
+		args, err := ec.field_Mutation_startSession_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.StartSession(childComplexity, args["gameName"].(*string)), true
 
 	case "Player.name":
 		if e.complexity.Player.Name == nil {
@@ -123,6 +130,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Player.Session(childComplexity), true
+
+	case "Query.gamesList":
+		if e.complexity.Query.GamesList == nil {
+			break
+		}
+
+		return e.complexity.Query.GamesList(childComplexity), true
 
 	case "Query.sessions":
 		if e.complexity.Query.Sessions == nil {
@@ -227,11 +241,12 @@ type Player {
 }
 
 type Query {
+  gamesList: [String!]!
   sessions: [Session!]!
 }
 
 type Mutation {
-  startSession: Session!
+  startSession(gameName: String): Session!
   joinSession(name: String!, code: String!): Player!
 }
 `, BuiltIn: false},
@@ -263,6 +278,21 @@ func (ec *executionContext) field_Mutation_joinSession_args(ctx context.Context,
 		}
 	}
 	args["code"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_startSession_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *string
+	if tmp, ok := rawArgs["gameName"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("gameName"))
+		arg0, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["gameName"] = arg0
 	return args, nil
 }
 
@@ -333,7 +363,7 @@ func (ec *executionContext) _Mutation_startSession(ctx context.Context, field gr
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().StartSession(rctx)
+		return ec.resolvers.Mutation().StartSession(rctx, fc.Args["gameName"].(*string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -365,6 +395,17 @@ func (ec *executionContext) fieldContext_Mutation_startSession(ctx context.Conte
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Session", field.Name)
 		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_startSession_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
 	}
 	return fc, nil
 }
@@ -519,6 +560,50 @@ func (ec *executionContext) fieldContext_Player_session(ctx context.Context, fie
 				return ec.fieldContext_Session_code(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Session", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_gamesList(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_gamesList(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().GamesList(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]string)
+	fc.Result = res
+	return ec.marshalNString2ᚕstringᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_gamesList(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
@@ -2687,6 +2772,29 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Query")
+		case "gamesList":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_gamesList(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx, innerFunc)
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return rrm(innerCtx)
+			})
 		case "sessions":
 			field := field
 
@@ -3201,6 +3309,38 @@ func (ec *executionContext) marshalNString2string(ctx context.Context, sel ast.S
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) unmarshalNString2ᚕstringᚄ(ctx context.Context, v interface{}) ([]string, error) {
+	var vSlice []interface{}
+	if v != nil {
+		vSlice = graphql.CoerceList(v)
+	}
+	var err error
+	res := make([]string, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNString2string(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalNString2ᚕstringᚄ(ctx context.Context, sel ast.SelectionSet, v []string) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	for i := range v {
+		ret[i] = ec.marshalNString2string(ctx, sel, v[i])
+	}
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
 }
 
 func (ec *executionContext) marshalN__Directive2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐDirective(ctx context.Context, sel ast.SelectionSet, v introspection.Directive) graphql.Marshaler {

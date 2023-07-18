@@ -9,7 +9,7 @@ package models
 // be considered when accessing shared resources.
 //
 // The runner receives player events via the channel passed into the `Run()` method
-// argument. It should then act on each event accoringly. The runner can delegate
+// argument. It should then act on each event accordingly. The runner can delegate
 // the game execution to another stage by ending the `Run()` and returning the
 // next `StageRunner` that will take over.
 type StageRunner interface {

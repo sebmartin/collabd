@@ -8,12 +8,15 @@ import (
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/gin-gonic/gin"
 	"github.com/sebmartin/collabd/game"
+	"github.com/sebmartin/collabd/games/connect4"
 	"github.com/sebmartin/collabd/graph"
 	"github.com/sebmartin/collabd/graph/generated"
 )
 
 const defaultPort = "8080"
 
+// This is an example server that launches the game server with
+// a test game
 func main() {
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -24,6 +27,8 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to initalize game server: %s", err)
 	}
+
+	connect4.Register()
 
 	r := gin.Default()
 	r.POST("/query", graphqlHandler(srv))

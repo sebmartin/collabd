@@ -55,8 +55,8 @@ func NewServer(driverName string, dsn string) (*Server, error) {
 
 // Start a new session for a game. This will create a new instance of a game and execute the initial
 // stage runner.
-func (s *Server) NewSession(ctx context.Context, gameName string) (*models.Session, error) {
-	game, err := NewGame(gameName, ctx)
+func (s *Server) NewSession(ctx context.Context, gameName *string) (*models.Session, error) {
+	game, err := NewGame(*gameName, ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -90,6 +90,10 @@ func (s *Server) SessionForCode(code string) (*models.Session, error) {
 		}
 	}
 	return nil, fmt.Errorf(`could not find session with code "%s"`, code)
+}
+
+func (s *Server) GamesList() ([]string, error) {
+	return RegisteredGames(), nil
 }
 
 func (s *Server) HandlePlayerEvent(sessionCode string, event models.PlayerEvent) error {
