@@ -61,8 +61,9 @@ type ComplexityRoot struct {
 	}
 
 	Session struct {
-		Code func(childComplexity int) int
-		ID   func(childComplexity int) int
+		Code    func(childComplexity int) int
+		ID      func(childComplexity int) int
+		Players func(childComplexity int) int
 	}
 }
 
@@ -159,6 +160,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Session.ID(childComplexity), true
 
+	case "Session.players":
+		if e.complexity.Session.Players == nil {
+			break
+		}
+
+		return e.complexity.Session.Players(childComplexity), true
+
 	}
 	return 0, false
 }
@@ -233,6 +241,7 @@ var sources = []*ast.Source{
 type Session {
   id: ID!
   code: String!
+  players: [Player!]!
 }
 
 type Player {
@@ -392,6 +401,8 @@ func (ec *executionContext) fieldContext_Mutation_startSession(ctx context.Conte
 				return ec.fieldContext_Session_id(ctx, field)
 			case "code":
 				return ec.fieldContext_Session_code(ctx, field)
+			case "players":
+				return ec.fieldContext_Session_players(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Session", field.Name)
 		},
@@ -558,6 +569,8 @@ func (ec *executionContext) fieldContext_Player_session(ctx context.Context, fie
 				return ec.fieldContext_Session_id(ctx, field)
 			case "code":
 				return ec.fieldContext_Session_code(ctx, field)
+			case "players":
+				return ec.fieldContext_Session_players(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Session", field.Name)
 		},
@@ -652,6 +665,8 @@ func (ec *executionContext) fieldContext_Query_sessions(ctx context.Context, fie
 				return ec.fieldContext_Session_id(ctx, field)
 			case "code":
 				return ec.fieldContext_Session_code(ctx, field)
+			case "players":
+				return ec.fieldContext_Session_players(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Session", field.Name)
 		},
@@ -871,6 +886,56 @@ func (ec *executionContext) fieldContext_Session_code(ctx context.Context, field
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Session_players(ctx context.Context, field graphql.CollectedField, obj *models.Session) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Session_players(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Players, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*models.Player)
+	fc.Result = res
+	return ec.marshalNPlayer2ᚕᚖgithubᚗcomᚋsebmartinᚋcollabdᚋmodelsᚐPlayerᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Session_players(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Session",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "name":
+				return ec.fieldContext_Player_name(ctx, field)
+			case "session":
+				return ec.fieldContext_Player_session(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Player", field.Name)
 		},
 	}
 	return fc, nil
@@ -2865,6 +2930,13 @@ func (ec *executionContext) _Session(ctx context.Context, sel ast.SelectionSet, 
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "players":
+
+			out.Values[i] = ec._Session_players(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -3226,6 +3298,50 @@ func (ec *executionContext) marshalNID2uint(ctx context.Context, sel ast.Selecti
 
 func (ec *executionContext) marshalNPlayer2githubᚗcomᚋsebmartinᚋcollabdᚋmodelsᚐPlayer(ctx context.Context, sel ast.SelectionSet, v models.Player) graphql.Marshaler {
 	return ec._Player(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNPlayer2ᚕᚖgithubᚗcomᚋsebmartinᚋcollabdᚋmodelsᚐPlayerᚄ(ctx context.Context, sel ast.SelectionSet, v []*models.Player) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNPlayer2ᚖgithubᚗcomᚋsebmartinᚋcollabdᚋmodelsᚐPlayer(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
 }
 
 func (ec *executionContext) marshalNPlayer2ᚖgithubᚗcomᚋsebmartinᚋcollabdᚋmodelsᚐPlayer(ctx context.Context, sel ast.SelectionSet, v *models.Player) graphql.Marshaler {

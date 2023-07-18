@@ -6,7 +6,6 @@ package graph
 import (
 	"context"
 	"fmt"
-	"log"
 
 	"github.com/sebmartin/collabd/graph/generated"
 	"github.com/sebmartin/collabd/models"
@@ -35,15 +34,12 @@ func (r *queryResolver) GamesList(ctx context.Context) ([]string, error) {
 
 // Sessions is the resolver for the sessions field.
 func (r *queryResolver) Sessions(ctx context.Context) ([]*models.Session, error) {
-	db := r.DB
-	sessions := []*models.Session{}
-	// TODO: this only returns 100, consider adopting the Relay protocol for paging
-	result := db.Limit(100).Find(&sessions)
-	if result.Error != nil {
-		log.Print("Failed to retrieve all sessions")
-		return nil, result.Error
+	sessions := r.GameServer.ActiveSessions()
+	if sessions != nil {
+		return sessions, nil
+	} else {
+		return []*models.Session{}, nil
 	}
-	return sessions, nil
 }
 
 // Mutation returns generated.MutationResolver implementation.

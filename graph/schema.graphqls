@@ -5,6 +5,7 @@
 type Session {
   id: ID!
   code: String!
+  players: [Player!]!
 }
 
 type Player {

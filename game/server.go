@@ -79,6 +79,12 @@ func (s *Server) appendSession(session *models.Session) {
 	s.sessions = append(s.sessions, session)
 }
 
+func (s *Server) ActiveSessions() []*models.Session {
+	s.sessionsMu.Lock()
+	defer s.sessionsMu.Unlock()
+	return s.sessions
+}
+
 // Lookup existing sessions by code and return it.
 func (s *Server) SessionForCode(code string) (*models.Session, error) {
 	s.sessionsMu.RLock()
